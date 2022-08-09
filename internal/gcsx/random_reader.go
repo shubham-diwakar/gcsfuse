@@ -28,9 +28,10 @@ import (
 )
 
 var (
-	// When a first read call is made by the user, we either fetch entire file or x number of bytes from GCS based on the request.
-	// Now depending on the pagesize multiple read calls will be issued by user to read the entire file. These
-	// requests will be served from the downloaded data.
+	// When a first read call is made by the user, we either fetch entire file
+	// or x number of bytes from GCS based on the request. Now depending on the
+	// pagesize multiple read calls will be issued by user to read the entire
+	// file. These requests will be served from the downloaded data.
 	// This metric captures only the requests made to GCS, not the subsequent page calls.
 	gcsReadCount = stats.Int64("gcs/read_count",
 		"Specifies the count of gcs reads made along with type",
