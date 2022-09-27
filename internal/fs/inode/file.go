@@ -157,7 +157,7 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 	// Stat the object in GCS. ForceFetchFromGcs ensures object is fetched from
 	// gcs and not cache.
 	req := &gcs.StatObjectRequest{
-		Name: f.name.GcsObjectName(),
+		Name:              f.name.GcsObjectName(),
 		ForceFetchFromGcs: forceFetchFromGcs,
 	}
 	o, err = f.bucket.StatObject(ctx, req)
@@ -167,7 +167,7 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 	if errors.As(err, &notFoundErr) {
 		err = nil
 		b = true
-		return
+		returnF
 	}
 
 	// Propagate other errors.
