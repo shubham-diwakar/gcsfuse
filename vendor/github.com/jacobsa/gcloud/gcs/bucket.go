@@ -145,7 +145,7 @@ func (b *bucket) ListObjects(
 		httputil.EncodePathSegment(b.Name()))
 
 	query := make(url.Values)
-	query.Set("projection", req.ProjectionVal.String())
+
 
 	if req.Prefix != "" {
 		query.Set("prefix", req.Prefix)
@@ -205,6 +205,12 @@ func (b *bucket) ListObjects(
 	// Convert the response.
 	if listing, err = toListing(rawListing); err != nil {
 		return
+	}
+
+	fmt.Println("PROJECTION ",req.ProjectionVal.String())
+	fmt.Println("LENGTH of and Object", len(listing.Objects))
+	if len(listing.Objects) > 0{
+		fmt.Println("OBJECT NAME ", listing.Objects[0].Name)
 	}
 
 	return

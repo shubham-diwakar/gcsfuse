@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -352,4 +353,69 @@ func (t *BucketHandleTest) TestListObjectMethodWithEmptyDelimiter() {
 	AssertEq(TestObjectName, obj.Objects[3].Name)
 	AssertEq(TestObjectGeneration, obj.Objects[0].Generation)
 	AssertEq(nil, obj.CollapsedRuns)
+}
+
+func (t *BucketHandleTest) TestUpdateObjectMethodWithValidObject() {
+	var ContentType string = "ContentType"
+	var ContentEncoding string = "ContentEncoding"
+	var ContentLanguage string = "ContentLanguage"
+	var CacheControl string = "CacheControl"
+
+	obj, err := t.bucketHandle.UpdateObject(context.Background(),
+		&gcs.UpdateObjectRequest{
+			Name:                       TestObjectName,
+			Generation:                 TestObjectGeneration,
+			MetaGenerationPrecondition: nil,
+			ContentType:                &ContentType,
+			ContentEncoding:            &ContentEncoding,
+			ContentLanguage:            &ContentLanguage,
+			CacheControl:               &CacheControl,
+			Metadata:                   nil,
+		})
+
+	fmt.Println(obj)
+	AssertEq(nil, err)
+}
+
+func (t *BucketHandleTest) TestUpdateObjectMethodWithMissingObject() {
+	var ContentType string = "ContentType"
+	var ContentEncoding string = "ContentEncoding"
+	var ContentLanguage string = "ContentLanguage"
+	var CacheControl string = "CacheControl"
+
+	_, err := t.bucketHandle.UpdateObject(context.Background(),
+		&gcs.UpdateObjectRequest{
+			Name:                       "Not_Exist",
+			Generation:                 TestObjectGeneration,
+			MetaGenerationPrecondition: nil,
+			ContentType:                &ContentType,
+			ContentEncoding:            &ContentEncoding,
+			ContentLanguage:            &ContentLanguage,
+			CacheControl:               &CacheControl,
+			Metadata:                   nil,
+		})
+
+	AssertEq("Error in updating object: storage: object doesn't exist", err.Error())
+}
+
+func (t *BucketHandleTest) TestUpdateObjectMethodWithInvalidGeneration() {
+	var ContentType string = "ContentType"
+	var ContentEncoding string = "ContentEncoding"
+	var ContentLanguage string = "ContentLanguage"
+	var CacheControl string = "CacheControl"
+
+	_, err := t.bucketHandle.UpdateObject(context.Background(),
+		&gcs.UpdateObjectRequest{
+			Name:                       TestObjectName,
+			Generation:                 222,
+			MetaGenerationPrecondition: nil,
+			ContentType:                &ContentType,
+			ContentEncoding:            &ContentEncoding,
+			ContentLanguage:            &ContentLanguage,
+			CacheControl:               &CacheControl,
+			Metadata:                   nil,
+		})
+
+	fmt.Println("ERROR ", err)
+	AssertEq(nil, err)
 }

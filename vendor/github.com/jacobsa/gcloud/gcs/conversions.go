@@ -57,6 +57,7 @@ func toListing(in *storagev1.Objects) (out *Listing, err error) {
 	}
 
 	out.Objects, err = toObjects(in.Items)
+	fmt.Println("LENGTH of ITEMS ",len(in.Items))
 	if err != nil {
 		err = fmt.Errorf("toObjects: %v", err)
 		return

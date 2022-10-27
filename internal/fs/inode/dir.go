@@ -531,7 +531,7 @@ func (d *dirInode) readObjects(
 		MaxResults:               MaxResultsForListObjectsCall,
 		// Setting Projection param to noAcl since fetching owner and acls are not
 		// required.
-		ProjectionVal:            gcs.NoAcl,
+		ProjectionVal: gcs.NoAcl,
 	}
 
 	listing, err := d.bucket.ListObjects(ctx, req)
@@ -550,6 +550,7 @@ func (d *dirInode) readObjects(
 
 	for _, o := range listing.Objects {
 		// Skip empty results or the directory object backing this inode.
+		//fmt.Println("NAME ", o.Name)
 		if o.Name == d.Name().GcsObjectName() || o.Name == "" {
 			continue
 		}

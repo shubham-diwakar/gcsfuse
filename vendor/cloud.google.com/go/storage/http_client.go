@@ -334,6 +334,8 @@ func (c *httpStorageClient) ListObjects(ctx context.Context, bucket string, q *Q
 		req := c.raw.Objects.List(bucket)
 		setClientHeader(req.Header())
 		projection := it.query.Projection
+		fmt.Println("PROJECTION of Item ",projection)
+		//projection = ProjectionNoACL
 		if projection == ProjectionDefault {
 			projection = ProjectionFull
 		}
@@ -368,13 +370,22 @@ func (c *httpStorageClient) ListObjects(ctx context.Context, bucket string, q *Q
 			return "", err
 		}
 		for _, item := range resp.Items {
-			it.items = append(it.items, newObject(item))
+			d:=newObject(item)
+			it.items = append(it.items,d )
+			//fmt.Println("DATA ",d.Name)
+
 		}
 		for _, prefix := range resp.Prefixes {
 			it.items = append(it.items, &ObjectAttrs{Prefix: prefix})
 		}
+		fmt.Println("Length of item %v", len(it.items))
+		if len(it.items) > 0 {
+			fmt.Println("OBJ NAME ", it.items[0].Name)
+		}
+
 		return resp.NextPageToken, nil
 	}
+
 	it.pageInfo, it.nextFunc = iterator.NewPageInfo(
 		fetch,
 		func() int { return len(it.items) },
