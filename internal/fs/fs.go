@@ -630,12 +630,13 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 			in.IncrementLookupCount()
 		}
 
-		fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.unlock is called\n")
+		fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.unlock is called for %v\n", ic.FullName)
 		fs.mu.Unlock()
 	}()
 
-	fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.lock is called\n")
+	fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.lock is called for %v\n", ic.FullName)
 	fs.mu.Lock()
+	fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.lock acquired for %v\n", ic.FullName)
 
 	// Handle implicit directories.
 	if ic.Object == nil {
@@ -685,8 +686,9 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		fs.mu.Unlock()
 		fmt.Printf("GenerationBackedInodes logic, existingInode lock %v\n", existingInode.ID())
 		existingInode.Lock()
-		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock called %v\n", existingInode.ID())
 		fs.mu.Lock()
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock acquired %v\n", existingInode.ID())
 
 		// Check that the index still points at this inode. If not, it's possible
 		// that the inode is in the process of being destroyed and is unsafe to
@@ -855,6 +857,7 @@ func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
 	if shouldDestroy {
 		fmt.Printf("UnlockAndDecrementLookUpCount fs.mu.lock is called for %v\n", in.ID())
 		fs.mu.Lock()
+		fmt.Printf("UnlockAndDecrementLookUpCount fs.mu.lock is acquired for %v\n", in.ID())
 		delete(fs.inodes, in.ID())
 
 		// Update indexes if necessary.
@@ -1029,10 +1032,12 @@ func (fs *fileSystem) LookUpInode(
 	ctx context.Context,
 	op *fuseops.LookUpInodeOp) (err error) {
 	// Find the parent directory in question.
-	fmt.Printf("LookUpInode fs.mu.lock is called\n")
+	fmt.Printf("LookUpInode fs.mu.lock is called for parent: %v and child : %v\n", op.Parent, op.Name)
 	fs.mu.Lock()
+	fmt.Printf("LookUpInode fs.mu.lock is acquired for parent: %v and child : %v\n", op.Parent, op.Name)
 	parent := fs.dirInodeOrDie(op.Parent)
-	fs.unlock("LookUpInode")
+	fmt.Printf("LookupInode fs.mu.unlock is called for parent %v and child \n", op.Parent, op.Name)
+	fs.mu.Unlock()
 
 	// Find or create the child inode.
 	child, err := fs.lookUpOrCreateChildInode(ctx, parent, op.Name)
@@ -1123,10 +1128,11 @@ func (fs *fileSystem) ForgetInode(
 	ctx context.Context,
 	op *fuseops.ForgetInodeOp) (err error) {
 	// Find the inode.
-	fmt.Printf("ForgetInode fs.mu.lock is called\n")
+	fmt.Printf("ForgetInode fs.mu.lock is called; %v\n", op.Inode)
 	fs.mu.Lock()
+	fmt.Printf("ForgetInode fs.mu.lock is acquired; %v\n", op.Inode)
 	in := fs.inodeOrDie(op.Inode)
-	fs.unlock("ForgetInode")
+	fs.unlock("ForgetInode", op.Inode)
 
 	// Decrement and unlock.
 	in.Lock()
@@ -1645,9 +1651,10 @@ func (fs *fileSystem) Unlink(
 func (fs *fileSystem) OpenDir(
 	ctx context.Context,
 	op *fuseops.OpenDirOp) (err error) {
-	fmt.Printf("OpenDir fs.mu.lock is invoked\n")
+	fmt.Printf("OpenDir fs.mu.lock is called for %v\n", op.Inode)
 	fs.mu.Lock()
-	defer fs.unlock("OpenDir")
+	fmt.Printf("OpenDir fs.mu.lock is acquired for %v\n", op.Inode)
+	defer fs.unlock("OpenDir", op.Inode)
 
 	// Make sure the inode still exists and is a directory. If not, something has
 	// screwed up because the VFS layer shouldn't have let us forget the inode
@@ -1704,9 +1711,10 @@ func (fs *fileSystem) ReleaseDirHandle(
 func (fs *fileSystem) OpenFile(
 	ctx context.Context,
 	op *fuseops.OpenFileOp) (err error) {
-	fmt.Printf("OpenFile fs.mu.lock is called\n")
+	fmt.Printf("OpenFile fs.mu.lock is called: %v\n", op.Inode)
 	fs.mu.Lock()
-	defer fs.unlock("OpenFile")
+	fmt.Printf("OpenFile fs.mu.lock is acquired: %v\n", op.Inode)
+	defer fs.unlock("OpenFile", op.Inode)
 
 	// Find the inode.
 	in := fs.fileInodeOrDie(op.Inode)
@@ -1727,8 +1735,8 @@ func (fs *fileSystem) OpenFile(
 	return
 }
 
-func (fs *fileSystem) unlock(methodName string) {
-	fmt.Printf("%s fs.mu.unlock is called\n", methodName)
+func (fs *fileSystem) unlock(methodName string, id fuseops.InodeID) {
+	fmt.Printf("%s fs.mu.unlock is called for %v\n", methodName, id)
 	fs.mu.Unlock()
 }
 
@@ -1737,10 +1745,11 @@ func (fs *fileSystem) ReadFile(
 	ctx context.Context,
 	op *fuseops.ReadFileOp) (err error) {
 	// Find the handle and lock it.
-	fmt.Printf("ReadFile fs.mu.lock is called\n")
+	fmt.Printf("ReadFile fs.mu.lock is called %v\n", op.Inode)
 	fs.mu.Lock()
+	fmt.Printf("ReadFile fs.mu.lock is acquired %v\n", op.Inode)
 	fh := fs.handles[op.Handle].(*handle.FileHandle)
-	fmt.Printf("ReadFile fs.mu.unlock is called\n")
+	fmt.Printf("ReadFile fs.mu.unlock is called %v\n", op.Inode)
 	fs.mu.Unlock()
 
 	fh.Lock()

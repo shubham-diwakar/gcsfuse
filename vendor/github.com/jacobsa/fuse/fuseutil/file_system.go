@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"fmt"
 
 	"github.com/jacobsa/fuse"
 	"github.com/jacobsa/fuse/fuseops"
@@ -154,9 +155,11 @@ func (s *fileSystemServer) handleOp(
 
 	case *fuseops.BatchForgetOp:
 		err = s.fs.BatchForget(ctx, typed)
+		fmt.Println("Batchforget converted to forgetInode")
 		if err == fuse.ENOSYS {
 			// Handle as a series of single-inode forget operations
 			for _, entry := range typed.Entries {
+				fmt.Printf("ForgetInode getting invoked for %v\n", entry.Inode)
 				err = s.fs.ForgetInode(ctx, &fuseops.ForgetInodeOp{
 					Inode:     entry.Inode,
 					N:         entry.N,
