@@ -630,9 +630,11 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 			in.IncrementLookupCount()
 		}
 
+		fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.unlock is called\n")
 		fs.mu.Unlock()
 	}()
 
+	fmt.Printf("LookUpOrCreateInodeIfNotStale fs.mu.lock is called\n")
 	fs.mu.Lock()
 
 	// Handle implicit directories.
@@ -649,6 +651,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 			fs.implicitDirInodes[in.Name()] = in.(inode.DirInode)
 		}
 
+		fmt.Printf("ImplicitInode logic is invoked for %v\n", in.ID())
 		in.Lock()
 		return
 	}
@@ -661,6 +664,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 	// Retry loop for the stale index entry case below. On entry, we hold fs.mu
 	// but no inode lock.
 	for {
+		fmt.Printf("GenerationBackedInodes logic is invoked \n")
 		// Look at the current index entry.
 		existingInode, ok := fs.generationBackedInodes[ic.FullName]
 
@@ -668,7 +672,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		if !ok {
 			in = fs.mintInode(ic)
 			fs.generationBackedInodes[in.Name()] = in.(inode.GenerationBackedInode)
-
+			fmt.Printf("GenerationBackedInodes logic, no existing inode %v\n", in.ID())
 			in.Lock()
 			return
 		}
@@ -677,14 +681,18 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// requires the inode's lock. We must not hold the inode lock while
 		// acquiring the file system lock, so drop it while acquiring the inode's
 		// lock, then reacquire.
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.unlock %v\n", existingInode.ID())
 		fs.mu.Unlock()
+		fmt.Printf("GenerationBackedInodes logic, existingInode lock %v\n", existingInode.ID())
 		existingInode.Lock()
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock %v\n", existingInode.ID())
 		fs.mu.Lock()
 
 		// Check that the index still points at this inode. If not, it's possible
 		// that the inode is in the process of being destroyed and is unsafe to
 		// use. Go around and try again.
 		if fs.generationBackedInodes[ic.FullName] != existingInode {
+			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, continue %v\n", existingInode.ID())
 			existingInode.Unlock()
 			continue
 		}
@@ -692,6 +700,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// Have we found the correct inode?
 		cmp := oGen.Compare(existingInode.SourceGeneration())
 		if cmp == 0 {
+			fmt.Printf("GenerationBackedInodes logic, returning %v\n", existingInode.ID())
 			in = existingInode
 			return
 		}
@@ -699,7 +708,9 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// The existing inode is newer than the backing object. The caller
 		// should call again with a newer backing object.
 		if cmp == -1 {
+			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, return %v\n", existingInode.ID())
 			existingInode.Unlock()
+
 			return
 		}
 
@@ -711,6 +722,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		//
 		// Replace it with a newly-mintend inode and then go around, acquiring its
 		// lock in accordance with our lock ordering rules.
+		fmt.Printf("GenerationBackedInodes logic, existingnode unlock %v\n", existingInode.ID())
 		existingInode.Unlock()
 
 		in = fs.mintInode(ic)
@@ -832,6 +844,7 @@ func (fs *fileSystem) syncFile(
 // UNLOCK_FUNCTION(fs.mu)
 // UNLOCK_FUNCTION(in)
 func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
+	fmt.Printf("UnLockAndDecrementLookupCount called for inode %v\n", in.ID())
 	name := in.Name()
 
 	// Decrement the lookup count.
@@ -840,6 +853,7 @@ func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
 	// Update file system state, orphaning the inode if we're going to destroy it
 	// below.
 	if shouldDestroy {
+		fmt.Printf("UnlockAndDecrementLookUpCount fs.mu.lock is called for %v\n", in.ID())
 		fs.mu.Lock()
 		delete(fs.inodes, in.ID())
 
@@ -850,6 +864,7 @@ func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
 		if fs.implicitDirInodes[name] == in {
 			delete(fs.implicitDirInodes, name)
 		}
+		fmt.Printf("UnlockAndDecrementLookUpCount fs.mu.unlock is called for %v\n", in.ID())
 		fs.mu.Unlock()
 	}
 
@@ -872,16 +887,16 @@ func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
 //
 // Typical usage:
 //
-//     func (fs *fileSystem) doFoo() (err error) {
-//       in, err := fs.lookUpOrCreateInodeIfNotStale(...)
-//       if err != nil {
-//         return
-//       }
+//	func (fs *fileSystem) doFoo() (err error) {
+//	  in, err := fs.lookUpOrCreateInodeIfNotStale(...)
+//	  if err != nil {
+//	    return
+//	  }
 //
-//       defer fs.unlockAndMaybeDisposeOfInode(in, &err)
+//	  defer fs.unlockAndMaybeDisposeOfInode(in, &err)
 //
-//       ...
-//     }
+//	  ...
+//	}
 //
 // LOCKS_REQUIRED(in)
 // LOCKS_EXCLUDED(fs.mu)
@@ -1014,9 +1029,10 @@ func (fs *fileSystem) LookUpInode(
 	ctx context.Context,
 	op *fuseops.LookUpInodeOp) (err error) {
 	// Find the parent directory in question.
+	fmt.Printf("LookUpInode fs.mu.lock is called\n")
 	fs.mu.Lock()
 	parent := fs.dirInodeOrDie(op.Parent)
-	fs.mu.Unlock()
+	fs.unlock("LookUpInode")
 
 	// Find or create the child inode.
 	child, err := fs.lookUpOrCreateChildInode(ctx, parent, op.Name)
@@ -1107,9 +1123,10 @@ func (fs *fileSystem) ForgetInode(
 	ctx context.Context,
 	op *fuseops.ForgetInodeOp) (err error) {
 	// Find the inode.
+	fmt.Printf("ForgetInode fs.mu.lock is called\n")
 	fs.mu.Lock()
 	in := fs.inodeOrDie(op.Inode)
-	fs.mu.Unlock()
+	fs.unlock("ForgetInode")
 
 	// Decrement and unlock.
 	in.Lock()
@@ -1628,8 +1645,9 @@ func (fs *fileSystem) Unlink(
 func (fs *fileSystem) OpenDir(
 	ctx context.Context,
 	op *fuseops.OpenDirOp) (err error) {
+	fmt.Printf("OpenDir fs.mu.lock is invoked\n")
 	fs.mu.Lock()
-	defer fs.mu.Unlock()
+	defer fs.unlock("OpenDir")
 
 	// Make sure the inode still exists and is a directory. If not, something has
 	// screwed up because the VFS layer shouldn't have let us forget the inode
@@ -1686,8 +1704,9 @@ func (fs *fileSystem) ReleaseDirHandle(
 func (fs *fileSystem) OpenFile(
 	ctx context.Context,
 	op *fuseops.OpenFileOp) (err error) {
+	fmt.Printf("OpenFile fs.mu.lock is called\n")
 	fs.mu.Lock()
-	defer fs.mu.Unlock()
+	defer fs.unlock("OpenFile")
 
 	// Find the inode.
 	in := fs.fileInodeOrDie(op.Inode)
@@ -1708,13 +1727,20 @@ func (fs *fileSystem) OpenFile(
 	return
 }
 
+func (fs *fileSystem) unlock(methodName string) {
+	fmt.Printf("%s fs.mu.unlock is called\n", methodName)
+	fs.mu.Unlock()
+}
+
 // LOCKS_EXCLUDED(fs.mu)
 func (fs *fileSystem) ReadFile(
 	ctx context.Context,
 	op *fuseops.ReadFileOp) (err error) {
 	// Find the handle and lock it.
+	fmt.Printf("ReadFile fs.mu.lock is called\n")
 	fs.mu.Lock()
 	fh := fs.handles[op.Handle].(*handle.FileHandle)
+	fmt.Printf("ReadFile fs.mu.unlock is called\n")
 	fs.mu.Unlock()
 
 	fh.Lock()

@@ -365,10 +365,13 @@ func (d *dirInode) createNewObject(
 ////////////////////////////////////////////////////////////////////////
 
 func (d *dirInode) Lock() {
+	fmt.Printf("%v is requesting for lock\n", d.id)
 	d.mu.Lock()
+	fmt.Printf("%v acquired lock\n", d.id)
 }
 
 func (d *dirInode) Unlock() {
+	fmt.Printf("%v releasing lock\n", d.id)
 	d.mu.Unlock()
 }
 
@@ -531,7 +534,7 @@ func (d *dirInode) readObjects(
 		MaxResults:               MaxResultsForListObjectsCall,
 		// Setting Projection param to noAcl since fetching owner and acls are not
 		// required.
-		ProjectionVal:            gcs.NoAcl,
+		ProjectionVal: gcs.NoAcl,
 	}
 
 	listing, err := d.bucket.ListObjects(ctx, req)

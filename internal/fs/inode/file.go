@@ -157,7 +157,7 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 	// Stat the object in GCS. ForceFetchFromGcs ensures object is fetched from
 	// gcs and not cache.
 	req := &gcs.StatObjectRequest{
-		Name: f.name.GcsObjectName(),
+		Name:              f.name.GcsObjectName(),
 		ForceFetchFromGcs: forceFetchFromGcs,
 	}
 	o, err = f.bucket.StatObject(ctx, req)
@@ -256,10 +256,13 @@ func (f *FileInode) ensureContent(ctx context.Context) (err error) {
 ////////////////////////////////////////////////////////////////////////
 
 func (f *FileInode) Lock() {
+	fmt.Printf("%v is requesting for lock\n", f.id)
 	f.mu.Lock()
+	fmt.Printf("%v acquired lock\n", f.id)
 }
 
 func (f *FileInode) Unlock() {
+	fmt.Printf("%v releasing lock\n", f.id)
 	f.mu.Unlock()
 }
 
