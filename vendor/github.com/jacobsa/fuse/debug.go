@@ -115,6 +115,9 @@ func describeRequest(op interface{}) (s string) {
 		addComponent("offset %d", typed.Offset)
 		addComponent("length %d", typed.Length)
 		addComponent("mode %d", typed.Mode)
+
+	case *fuseops.BatchForgetOp:
+		addComponent("Entries %v", typed.Entries)
 	}
 
 	// Use just the name if there is no extra info.
