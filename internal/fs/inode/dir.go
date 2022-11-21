@@ -365,13 +365,13 @@ func (d *dirInode) createNewObject(
 ////////////////////////////////////////////////////////////////////////
 
 func (d *dirInode) Lock() {
-	fmt.Printf("%v is requesting for lock\n", d.id)
+	fmt.Printf("%v and %v is requesting for dir lock\n", d.id, d.name)
 	d.mu.Lock()
-	fmt.Printf("%v acquired lock\n", d.id)
+	fmt.Printf("%v and %v acquired dir lock\n", d.id, d.name)
 }
 
 func (d *dirInode) Unlock() {
-	fmt.Printf("%v releasing lock\n", d.id)
+	fmt.Printf("%v and %v releasing dir lock\n", d.id, d.name)
 	d.mu.Unlock()
 }
 

@@ -256,13 +256,13 @@ func (f *FileInode) ensureContent(ctx context.Context) (err error) {
 ////////////////////////////////////////////////////////////////////////
 
 func (f *FileInode) Lock() {
-	fmt.Printf("%v is requesting for lock\n", f.id)
+	fmt.Printf("%v and %v is requesting for file lock\n", f.id, f.name)
 	f.mu.Lock()
-	fmt.Printf("%v acquired lock\n", f.id)
+	fmt.Printf("%v and %v acquired file lock\n", f.id, f.name)
 }
 
 func (f *FileInode) Unlock() {
-	fmt.Printf("%v releasing lock\n", f.id)
+	fmt.Printf("%v and %v releasing file lock\n", f.id, f.name)
 	f.mu.Unlock()
 }
 

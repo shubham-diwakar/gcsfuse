@@ -115,6 +115,7 @@ func (s *fileSystemServer) ServeOps(c *fuse.Connection) {
 
 		s.opsInFlight.Add(1)
 		if _, ok := op.(*fuseops.ForgetInodeOp); ok {
+			fmt.Println("ForgetInode is invoked")
 			// Special case: call in this goroutine for
 			// forget inode ops, which may come in a
 			// flurry from the kernel and are generally
@@ -155,8 +156,8 @@ func (s *fileSystemServer) handleOp(
 
 	case *fuseops.BatchForgetOp:
 		err = s.fs.BatchForget(ctx, typed)
-		fmt.Println("Batchforget converted to forgetInode")
 		if err == fuse.ENOSYS {
+			fmt.Println("Batchforget converted to forgetInode")
 			// Handle as a series of single-inode forget operations
 			for _, entry := range typed.Entries {
 				fmt.Printf("ForgetInode getting invoked for %v\n", entry.Inode)

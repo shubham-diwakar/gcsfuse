@@ -665,7 +665,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 	// Retry loop for the stale index entry case below. On entry, we hold fs.mu
 	// but no inode lock.
 	for {
-		fmt.Printf("GenerationBackedInodes logic is invoked \n")
+		fmt.Printf("GenerationBackedInodes logic is invoked %v\n", ic.FullName)
 		// Look at the current index entry.
 		existingInode, ok := fs.generationBackedInodes[ic.FullName]
 
@@ -673,7 +673,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		if !ok {
 			in = fs.mintInode(ic)
 			fs.generationBackedInodes[in.Name()] = in.(inode.GenerationBackedInode)
-			fmt.Printf("GenerationBackedInodes logic, no existing inode %v\n", in.ID())
+			fmt.Printf("GenerationBackedInodes logic, no existing inode %v and %v\n", in.ID(), ic.FullName)
 			in.Lock()
 			return
 		}
@@ -682,19 +682,19 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// requires the inode's lock. We must not hold the inode lock while
 		// acquiring the file system lock, so drop it while acquiring the inode's
 		// lock, then reacquire.
-		fmt.Printf("GenerationBackedInodes logic, fs.mu.unlock %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.unlock %v and %v\n", existingInode.ID(), ic.FullName)
 		fs.mu.Unlock()
-		fmt.Printf("GenerationBackedInodes logic, existingInode lock %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, existingInode lock %v and %v\n", existingInode.ID(), ic.FullName)
 		existingInode.Lock()
-		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock called %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock called %v and %v\n", existingInode.ID(), ic.FullName)
 		fs.mu.Lock()
-		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock acquired %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, fs.mu.lock acquired %v and %v \n", existingInode.ID(), ic.FullName)
 
 		// Check that the index still points at this inode. If not, it's possible
 		// that the inode is in the process of being destroyed and is unsafe to
 		// use. Go around and try again.
 		if fs.generationBackedInodes[ic.FullName] != existingInode {
-			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, continue %v\n", existingInode.ID())
+			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, continue %v and %v\n", existingInode.ID(), ic.FullName)
 			existingInode.Unlock()
 			continue
 		}
@@ -702,7 +702,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// Have we found the correct inode?
 		cmp := oGen.Compare(existingInode.SourceGeneration())
 		if cmp == 0 {
-			fmt.Printf("GenerationBackedInodes logic, returning %v\n", existingInode.ID())
+			fmt.Printf("GenerationBackedInodes logic, returning %v and %v\n", existingInode.ID(), ic.FullName)
 			in = existingInode
 			return
 		}
@@ -710,7 +710,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		// The existing inode is newer than the backing object. The caller
 		// should call again with a newer backing object.
 		if cmp == -1 {
-			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, return %v\n", existingInode.ID())
+			fmt.Printf("GenerationBackedInodes logic, existingnode unlock, return %v and %v\n", existingInode.ID(), ic.FullName)
 			existingInode.Unlock()
 
 			return
@@ -724,7 +724,7 @@ func (fs *fileSystem) lookUpOrCreateInodeIfNotStale(ic inode.Core) (in inode.Ino
 		//
 		// Replace it with a newly-mintend inode and then go around, acquiring its
 		// lock in accordance with our lock ordering rules.
-		fmt.Printf("GenerationBackedInodes logic, existingnode unlock %v\n", existingInode.ID())
+		fmt.Printf("GenerationBackedInodes logic, existingnode unlock %v and %v\n", existingInode.ID(), ic.FullName)
 		existingInode.Unlock()
 
 		in = fs.mintInode(ic)
@@ -1032,11 +1032,11 @@ func (fs *fileSystem) LookUpInode(
 	ctx context.Context,
 	op *fuseops.LookUpInodeOp) (err error) {
 	// Find the parent directory in question.
-	fmt.Printf("LookUpInode fs.mu.lock is called for parent: %v and child : %v\n", op.Parent, op.Name)
+	fmt.Printf("LookUpInode fs.mu.lock is called for parent: %v and child: %v\n", op.Parent, op.Name)
 	fs.mu.Lock()
-	fmt.Printf("LookUpInode fs.mu.lock is acquired for parent: %v and child : %v\n", op.Parent, op.Name)
+	fmt.Printf("LookUpInode fs.mu.lock is acquired for parent: %v and child: %v\n", op.Parent, op.Name)
 	parent := fs.dirInodeOrDie(op.Parent)
-	fmt.Printf("LookupInode fs.mu.unlock is called for parent %v and child \n", op.Parent, op.Name)
+	fmt.Printf("LookupInode fs.mu.unlock is called for parent %v and child: %v \n", op.Parent, op.Name)
 	fs.mu.Unlock()
 
 	// Find or create the child inode.
