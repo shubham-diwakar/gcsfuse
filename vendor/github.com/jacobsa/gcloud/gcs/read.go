@@ -92,7 +92,10 @@ func (b *bucket) NewReader(
 	}
 
 	// Call the server.
+	startTime := time.Now()
 	httpRes, err := b.client.Do(httpReq)
+	latencyMs := float64(time.Since(startTime).Microseconds()) / 1000.0
+	fmt.Printf("Range %s - %s time is: %g: %g\n", req.Range.Start, req.Range.Limit, latencyMs)
 	if err != nil {
 		return
 	}
@@ -181,7 +184,7 @@ func NewReaderSCL(
 
 	rc = io.NopCloser(r) // Converting io.Reader to io.ReadCloser.
 	nopConverter := float64(time.Since(startTime).Microseconds()) / 1000.0
-	fmt.Printf("Range %s - %s time is: %s and noop is: %s", start, length, latencyMs, nopConverter)
+	fmt.Printf("Range %s - %s time is: %g and noop is: %g\n", start, length, latencyMs, nopConverter)
 	return
 }
 
