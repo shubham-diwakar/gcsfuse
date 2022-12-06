@@ -17,7 +17,7 @@ package gcs
 import (
 	"cloud.google.com/go/storage"
 	"crypto/md5"
-	"crypto/tls"
+	//"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/jacobsa/gcloud/httputil"
@@ -25,7 +25,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
+//	"google.golang.org/api/option"
 	storagev1 "google.golang.org/api/storage/v1"
 	"io"
 	"net/http"
