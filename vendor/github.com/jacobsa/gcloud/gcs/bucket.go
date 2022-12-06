@@ -557,10 +557,10 @@ func newBucket(
 
 	if goClientConfig.EnableStorageClientLibrary {
 		// Creating client through Go Storage Client Library for the storageClient parameter of bucket.
-		var tr *http.Transport = nil
+		/*var tr *http.Transport = nil
 
 		// Choosing between HTTP1 and HTTP2.
-		/*if goClientConfig.DisableHTTP2 {
+		if goClientConfig.DisableHTTP2 {
 			tr = &http.Transport{
 				MaxConnsPerHost:     goClientConfig.MaxConnsPerHost,
 				MaxIdleConnsPerHost: goClientConfig.MaxIdleConnsPerHost,
