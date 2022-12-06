@@ -17,7 +17,7 @@ package gcs
 import (
 	"cloud.google.com/go/storage"
 	"crypto/md5"
-	//"crypto/tls"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/jacobsa/gcloud/httputil"
@@ -25,7 +25,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
-//	"google.golang.org/api/option"
+	"google.golang.org/api/option"
 	storagev1 "google.golang.org/api/storage/v1"
 	"io"
 	"net/http"
@@ -586,7 +586,21 @@ func newBucket(
 		}
 
 		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient)) */
-		storageClient, err = storage.NewClient(ctx)
+
+		tr := &http.Transport{
+			DisableKeepAlives: true,
+			MaxConnsPerHost:   goClientConfig.MaxConnsPerHost, // Not affecting the performance when HTTP 2.0 is enabled.
+			ForceAttemptHTTP2: true,
+		}
+
+		httpClient := &http.Client{Transport: &oauth2.Transport{
+			Base:   tr,
+			Source: tokenSrc,
+		},
+			Timeout: 800 * time.Millisecond,
+		}
+
+		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient))
 		if err != nil {
 			err = fmt.Errorf("Error in creating the client through Go Storage Library: %v", err)
 		}
