@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/jacobsa/gcloud/httputil"
@@ -169,14 +170,18 @@ func NewReaderSCL(
 	}
 
 	// Creating a NewRangeReader instance.
+	startTime := time.Now()
 	r, err := obj.NewRangeReader(ctx, start, length)
+	latencyMs := float64(time.Since(startTime).Microseconds()) / 1000.0
+
 	if err != nil {
 		err = fmt.Errorf("Error in creating a NewRangeReader instance: %v", err)
 		return
 	}
 
 	rc = io.NopCloser(r) // Converting io.Reader to io.ReadCloser.
-
+	nopConverter := float64(time.Since(startTime).Microseconds()) / 1000.0
+	fmt.Printf("Range %s - %s time is: %s and noop is: %s", start, length, latencyMs, nopConverter)
 	return
 }
 
