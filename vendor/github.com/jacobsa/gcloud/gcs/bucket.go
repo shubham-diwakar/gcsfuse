@@ -560,7 +560,7 @@ func newBucket(
 		var tr *http.Transport = nil
 
 		// Choosing between HTTP1 and HTTP2.
-		if goClientConfig.DisableHTTP2 {
+		/*if goClientConfig.DisableHTTP2 {
 			tr = &http.Transport{
 				MaxConnsPerHost:     goClientConfig.MaxConnsPerHost,
 				MaxIdleConnsPerHost: goClientConfig.MaxIdleConnsPerHost,
@@ -585,7 +585,8 @@ func newBucket(
 			Timeout: 800 * time.Millisecond,
 		}
 
-		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient))
+		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient)) */
+		storageClient, err = storage.NewClient(ctx)
 		if err != nil {
 			err = fmt.Errorf("Error in creating the client through Go Storage Library: %v", err)
 		}
