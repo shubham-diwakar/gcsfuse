@@ -17,7 +17,7 @@ package gcs
 import (
 	"cloud.google.com/go/storage"
 	"crypto/md5"
-	//"crypto/tls"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/jacobsa/gcloud/httputil"
@@ -588,9 +588,12 @@ func newBucket(
 		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient)) */
 
 		tr := &http.Transport{
-			DisableKeepAlives: true,
-			MaxConnsPerHost:   goClientConfig.MaxConnsPerHost, // Not affecting the performance when HTTP 2.0 is enabled.
-			ForceAttemptHTTP2: true,
+			MaxConnsPerHost:     goClientConfig.MaxConnsPerHost,
+			MaxIdleConnsPerHost: goClientConfig.MaxIdleConnsPerHost,
+			// This disables HTTP/2 in transport.
+			TLSNextProto: make(
+				map[string]func(string, *tls.Conn) http.RoundTripper,
+			),
 		}
 
 		httpClient := &http.Client{Transport: &oauth2.Transport{
