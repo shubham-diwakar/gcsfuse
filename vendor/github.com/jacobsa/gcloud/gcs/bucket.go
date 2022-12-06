@@ -17,7 +17,7 @@ package gcs
 import (
 	"cloud.google.com/go/storage"
 	"crypto/md5"
-	"crypto/tls"
+	//"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/jacobsa/gcloud/httputil"
