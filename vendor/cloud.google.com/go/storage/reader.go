@@ -166,8 +166,8 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		var res *http.Response
 		err = run(ctx, func() error {
 			res, err = o.c.hc.Do(req)
-			fmt.Println(res.Status)
-			fmt.Println(res.Proto)
+		/*	fmt.Println(res.Status)
+			fmt.Println(res.Proto)*/
 			if err != nil {
 				return err
 			}
