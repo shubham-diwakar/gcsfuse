@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"fmt"
 
 	"go.opencensus.io/plugin/ochttp"
 	"golang.org/x/oauth2"
@@ -39,6 +40,8 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*http.Client, 
 	}
 	// TODO(cbro): consider injecting the User-Agent even if an explicit HTTP client is provided?
 	if settings.HTTPClient != nil {
+		fmt.Println("Swethav returning the client passed by us")
+		fmt.Println(settings.HTTPClient)
 		return settings.HTTPClient, endpoint, nil
 	}
 	trans, err := newTransport(ctx, defaultBaseTransport(ctx, clientCertSource), settings)
