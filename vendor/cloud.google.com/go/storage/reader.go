@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"net/http/httputil"
+	//"net/http/httputil"
 
 	"cloud.google.com/go/internal/trace"
 	"google.golang.org/api/googleapi"
@@ -169,12 +169,12 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 			if err != nil {
 				return err
 			}
-			dumped, err := httputil.DumpResponse(res, true)
+		/*	dumped, err := httputil.DumpResponse(res, true)
 			if err == nil {
 				err = fmt.Errorf("DumpResponse: %v", err)
 
 				fmt.Printf("========== RESPONSE:\n%s", dumped)
-			}
+			}*/
 			if res.StatusCode == http.StatusNotFound {
 				res.Body.Close()
 				return ErrObjectNotExist
