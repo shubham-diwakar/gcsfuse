@@ -136,10 +136,10 @@ func NewConn(cfg *ConnConfig) (c Conn, err error) {
 
 	// Choose the basic transport.
 	transport := cfg.Transport
-	if cfg.HTTPDebugLogger != nil {
+	/*if cfg.HTTPDebugLogger != nil {
 		transport = http.DefaultTransport.(httputil.CancellableRoundTripper)
 	}
-
+*/
 	// Enable HTTP debugging if requested.
 	if cfg.HTTPDebugLogger != nil {
 		transport = httputil.DebuggingRoundTripper(transport, cfg.HTTPDebugLogger)
