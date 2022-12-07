@@ -589,7 +589,7 @@ func newBucket(
 
 		tr := &http.Transport{
 			MaxConnsPerHost:     goClientConfig.MaxConnsPerHost,
-			MaxIdleConnsPerHost: goClientConfig.MaxIdleConnsPerHost,
+		//	MaxIdleConnsPerHost: goClientConfig.MaxIdleConnsPerHost,
 			// This disables HTTP/2 in transport.
 			TLSNextProto: make(
 				map[string]func(string, *tls.Conn) http.RoundTripper,
@@ -600,7 +600,7 @@ func newBucket(
 			Base:   tr,
 			Source: tokenSrc,
 		},
-			Timeout: 800 * time.Millisecond,
+		//	Timeout: 800 * time.Millisecond,
 		}
 
 		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient))
