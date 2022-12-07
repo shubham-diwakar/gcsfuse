@@ -600,7 +600,7 @@ func newBucket(
 			Base:   tr,
 			Source: tokenSrc,
 		},
-		//	Timeout: 800 * time.Millisecond,
+			Timeout: 600 * time.Millisecond,
 		}
 
 		storageClient, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient))
