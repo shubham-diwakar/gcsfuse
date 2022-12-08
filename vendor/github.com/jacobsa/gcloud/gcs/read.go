@@ -85,7 +85,10 @@ func (b *bucket) NewReader(
 		var v string
 		v, bodyLimit = makeRangeHeaderValue(*req.Range)
 		httpReq.Header.Set("Range", v)
+		fmt.Println("Printing range")
+		fmt.Println(v)
 	}
+
 
 	// Call the server.
 	httpRes, err := b.client.Do(httpReq)
