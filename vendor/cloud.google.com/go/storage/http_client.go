@@ -25,6 +25,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/internal/optional"
 	"cloud.google.com/go/internal/trace"
@@ -941,15 +942,17 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 
 	if params.length > 0 {
 		hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
-		fmt.Println("length set")
-		fmt.Println(hdr)
 		req.Header.Set("Range", hdr)
 	}
 //	n = int64(br.Limit - br.Start)
 
 
 	// Define a function that initiates a Read with offset and length, assuming we
+	startTime := time.Now()
 	httpRes, err := params.httpClient.Do(req)
+	latencyUs := time.Since(startTime).Microseconds()
+	latencyMs := float64(latencyUs) / 1000.0
+	fmt.Printf("Time for goclient: %g\n", latencyMs)
 	if err != nil {
 		return
 	}

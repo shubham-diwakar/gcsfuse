@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
@@ -91,7 +92,11 @@ func (b *bucket) NewReader(
 
 
 	// Call the server.
+	startTime := time.Now()
 	httpRes, err := b.client.Do(httpReq)
+	latencyUs := time.Since(startTime).Microseconds()
+	latencyMs := float64(latencyUs) / 1000.0
+	fmt.Printf("Time for jacobsa: %g\n", latencyMs)
 	if err != nil {
 		return
 	}
