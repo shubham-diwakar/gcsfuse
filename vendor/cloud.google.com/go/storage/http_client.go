@@ -856,6 +856,11 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		Host:          "storage.googleapis.com:443",
 		Cancel:        ctx.Done(),
 	}
+
+	hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length-1)
+//	n = int64(br.Limit - br.Start)
+
+	req.Header.Set("Range", hdr)
 	// Define a function that initiates a Read with offset and length, assuming we
 	httpRes, err := params.httpClient.Do(req)
 	if err != nil {
