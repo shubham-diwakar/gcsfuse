@@ -887,6 +887,16 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	// The body contains the object data.
 	rc := httpRes.Body
 
+	if err = googleapi.CheckResponse(httpRes); err != nil {
+		fmt.Println("We got an error")
+		if typed, ok := err.(*googleapi.Error); ok {
+		fmt.Println(typed.Code)
+		fmt.Println(typed.Body)
+		}
+
+		return
+	}
+
 	// If the user requested a range and we didn't see HTTP 416 above, we require
 	// an HTTP 206 response and must truncate the body. See the notes on
 	// makeRangeHeaderValue.
