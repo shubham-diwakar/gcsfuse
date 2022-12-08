@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	urlpkg "net/url"
 //	"net/http/httputil"
 
 	"cloud.google.com/go/internal/trace"
@@ -97,9 +98,11 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 	defer func() { trace.EndSpan(ctx, err) }()
 
 	if o.c.gc != nil {
+		
 		return o.newRangeReaderWithGRPC(ctx, offset, length)
 	}
 
+	fmt.Println("GRPC is not used")
 	if err := o.validate(); err != nil {
 		return nil, err
 	}
@@ -163,9 +166,24 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 			req.URL.RawQuery = fmt.Sprintf("generation=%d", gen)
 		}
 
+		url, _ := urlpkg.Parse(u.String())
+		newreq := &http.Request{
+			Method:        "GET",
+			URL:           url,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			Header:        make(http.Header),
+			Body:          nil,
+			ContentLength: 0,
+			Host:          url.Host,
+			Cancel:        ctx.Done(),
+		}
+
+
 		var res *http.Response
 		err = run(ctx, func() error {
-			res, err = httpClient.Do(req)
+			res, err = httpClient.Do(newreq)
 		/*	fmt.Println(res.Status)
 			fmt.Println(res.Proto)*/
 			if err != nil {
