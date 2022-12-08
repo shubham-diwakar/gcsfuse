@@ -36,10 +36,12 @@ type bucketHandle struct {
 	gcs.Bucket
 	bucket     *storage.BucketHandle
 	bucketName string
+	httpClient *http.Client
 }
 
 func (bh *bucketHandle) Name() string {
 	return bh.bucketName
+	
 }
 
 func (bh *bucketHandle) NewReader(
@@ -64,7 +66,7 @@ func (bh *bucketHandle) NewReader(
 	}
 
 	// Creating a NewRangeReader instance.
-	r, err := obj.NewRangeReader(ctx, start, length)
+	r, err := obj.NewRangeReader(ctx, start, length, bh.httpClient)
 	if err != nil {
 		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
 		return

@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"time"
+	"net/http"
 
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
@@ -289,6 +290,7 @@ type newRangeReaderParams struct {
 	object         string
 	offset         int64
 	readCompressed bool // Use accept-encoding: gzip. Only works for HTTP currently.
+	httpClient *http.Client
 }
 
 type composeObjectRequest struct {

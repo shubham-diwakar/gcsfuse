@@ -73,7 +73,7 @@ type ReaderObjectAttrs struct {
 //
 // The caller must call Close on the returned Reader when done reading.
 func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
-	return o.NewRangeReader(ctx, 0, -1)
+	return o.NewRangeReader(ctx, 0, -1, nil)
 }
 
 // NewRangeReader reads part of an object, reading at most length bytes
@@ -86,7 +86,7 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 // decompressive transcoding per https://cloud.google.com/storage/docs/transcoding
 // that file will be served back whole, regardless of the requested range as
 // Google Cloud Storage dictates.
-func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64) (r *Reader, err error) {
+func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client) (r *Reader, err error) {
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()
 
@@ -113,6 +113,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 		encryptionKey:  o.encryptionKey,
 		conds:          o.conds,
 		readCompressed: o.readCompressed,
+		httpClient: httpClient,
 	}
 
 	r, err = o.c.tc.NewRangeReader(ctx, params, opts...)
