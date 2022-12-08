@@ -941,6 +941,8 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 
 	if params.length > 0 {
 		hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
+		fmt.Println("length set")
+		fmt.Println(hdr)
 		req.Header.Set("Range", hdr)
 	}
 //	n = int64(br.Limit - br.Start)
