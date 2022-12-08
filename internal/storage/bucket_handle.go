@@ -22,11 +22,17 @@ package storage
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"math"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
+	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -47,36 +53,146 @@ func (bh *bucketHandle) Name() string {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	// Initialising the starting offset and the length to be read by the reader.
-	start := int64(0)
-	length := int64(-1)
-	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
-	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
-	if req.Range != nil {
-		start = int64((*req.Range).Start)
-		end := int64((*req.Range).Limit)
-		length = end - start
-	}
+	// Construct an appropriate URL.
+	//
+	// The documentation (https://goo.gl/9zeA98) is vague about how this is
+	// supposed to work. As of 2015-05-14, it has no prose but gives the example:
+	//
+	//     www.googleapis.com/download/storage/v1/b/<bucket>/o/<object>?alt=media
+	//
+	// In Google-internal bug 19718068, it was clarified that the intent is that
+	// each of the bucket and object names are encoded into a single path
+	// segment, as defined by RFC 3986.
+	bucketSegment := httputil.EncodePathSegment(bh.Name())
+	objectSegment := httputil.EncodePathSegment(req.Name)
+	opaque := fmt.Sprintf(
+		"//%s/download/storage/v1/b/%s/o/%s",
+		"storage.googleapis.com:443",
+		bucketSegment,
+		objectSegment)
 
-	obj := bh.bucket.Object(req.Name)
+	query := make(url.Values)
+	query.Set("alt", "media")
 
-	// Switching to the requested generation of object.
 	if req.Generation != 0 {
-		obj = obj.Generation(req.Generation)
+		query.Set("generation", fmt.Sprintf("%d", req.Generation))
 	}
 
-	// Creating a NewRangeReader instance.
-	r, err := obj.NewRangeReader(ctx, start, length, bh.httpClient)
+	url := &url.URL{
+		Scheme:   "https",
+		Host:     "storage.googleapis.com:443",
+		Opaque:   opaque,
+		RawQuery: query.Encode(),
+	}
+
+	// Create an HTTP request.
+	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
 	if err != nil {
-		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
+		err = fmt.Errorf("httputil.NewRequest: %v", err)
 		return
 	}
 
-	rc = gcs.NewLimitReadCloser(r, length)
+	// Set a Range header, if appropriate.
+	var bodyLimit int64
+	if req.Range != nil {
+		var v string
+		v, bodyLimit = makeRangeHeaderValue(*req.Range)
+		httpReq.Header.Set("Range", v)
+		fmt.Println("Printing range")
+		fmt.Println(v)
+	}
 
-	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
-	// to match the return type interface.
-	rc = io.NopCloser(rc)
+	// Call the server.
+	startTime := time.Now()
+	httpRes, err := bh.httpClient.Do(httpReq)
+	latencyUs := time.Since(startTime).Microseconds()
+	latencyMs := float64(latencyUs) / 1000.0
+	fmt.Printf("Time for jacobsa: %g\n", latencyMs)
+	if err != nil {
+		return
+	}
+
+	// Close the body if we're returning in error.
+	defer func() {
+		if err != nil {
+			googleapi.CloseBody(httpRes)
+		}
+	}()
+
+	// Check for HTTP error statuses.
+	if err = googleapi.CheckResponse(httpRes); err != nil {
+		if typed, ok := err.(*googleapi.Error); ok {
+			// Special case: handle not found errors.
+			if typed.Code == http.StatusNotFound {
+				err = &gcs.NotFoundError{Err: typed}
+			}
+
+			// Special case: if the user requested a range and we received HTTP 416
+			// from the server, treat this as an empty body. See makeRangeHeaderValue
+			// for more details.
+			if req.Range != nil &&
+				typed.Code == http.StatusRequestedRangeNotSatisfiable {
+				err = nil
+				googleapi.CloseBody(httpRes)
+				rc = ioutil.NopCloser(strings.NewReader(""))
+			}
+		}
+
+		return
+	}
+
+	// The body contains the object data.
+	rc = httpRes.Body
+
+	// If the user requested a range and we didn't see HTTP 416 above, we require
+	// an HTTP 206 response and must truncate the body. See the notes on
+	// makeRangeHeaderValue.
+	if req.Range != nil {
+		if httpRes.StatusCode != http.StatusPartialContent {
+			err = fmt.Errorf(
+				"Received unexpected status code %d instead of HTTP 206",
+				httpRes.StatusCode)
+
+			return
+		}
+
+		rc = io.NopCloser(gcs.NewLimitReadCloser(rc, bodyLimit))
+	}
+
+	return
+
+}
+
+func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
+	// HACK(jacobsa): Above a certain number N, GCS appears to treat Range
+	// headers containing a last-byte-pos > N as syntactically invalid. I've
+	// experimentally determined that N is 2^63-1, which makes sense if they are
+	// using signed integers.
+	//
+	// Since math.MaxUint64 is a reasonable way to express "infinity" for a
+	// limit, and because we don't intend to support eight-exabyte objects,
+	// handle this by truncating the limit. This also prevents overflow when
+	// casting to int64 below.
+	if br.Limit > math.MaxInt64 {
+		br.Limit = math.MaxInt64
+	}
+
+	// Canonicalize ranges that the server will not like. We must do this because
+	// RFC 2616 §14.35.1 requires the last byte position to be greater than or
+	// equal to the first byte position.
+	if br.Limit < br.Start {
+		br.Start = 0
+		br.Limit = 0
+	}
+
+	// HTTP byte range specifiers are [min, max] double-inclusive, ugh. But we
+	// require the user to truncate, so there is no harm in requesting one byte
+	// extra at the end. If the range GCS sees goes past the end of the object,
+	// it truncates. If the range starts after the end of the object, it returns
+	// HTTP 416, which we require the user to handle.
+	hdr = fmt.Sprintf("bytes=%d-%d", br.Start, br.Limit)
+	n = int64(br.Limit - br.Start)
+
 	return
 }
 
