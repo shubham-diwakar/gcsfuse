@@ -827,10 +827,10 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	query := make(url.Values)
 	query.Set("alt", "media")
 
-	if params.gen != 0 {
+/*	if params.gen != 0 {
 		query.Set("generation", fmt.Sprintf("%d", params.gen))
 	}
-
+*/
 	//query.Set("userProject", "BillingProject")
 
 /*	if b.billingProject != "" {
