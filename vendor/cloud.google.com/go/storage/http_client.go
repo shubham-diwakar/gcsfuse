@@ -770,6 +770,83 @@ func (c *httpStorageClient) RewriteObject(ctx context.Context, req *rewriteObjec
 	return r, nil
 }
 
+func EncodePathSegment(s string) string {
+	// Scan the string once to count how many bytes must be escaped.
+	escapeCount := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if shouldEscapeForPathSegment(c) {
+			escapeCount++
+		}
+	}
+
+	// Fast path: is there anything to do?
+	if escapeCount == 0 {
+		return s
+	}
+
+	// Make a buffer that is large enough, then fill it in.
+	t := make([]byte, len(s)+2*escapeCount)
+	j := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+
+		// Escape if necessary.
+		if shouldEscapeForPathSegment(c) {
+			t[j] = '%'
+			t[j+1] = "0123456789ABCDEF"[c>>4]
+			t[j+2] = "0123456789ABCDEF"[c&15]
+			j += 3
+		} else {
+			t[j] = c
+			j++
+		}
+	}
+
+	return string(t)
+}
+
+func shouldEscapeForPathSegment(c byte) bool {
+	// According to the following sections of the RFC:
+	//
+	//     http://tools.ietf.org/html/rfc3986#section-3.3
+	//     http://tools.ietf.org/html/rfc3986#section-3.4
+	//
+	// The grammar for a segment is:
+	//
+	//     segment       = *pchar
+	//     pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+	//     unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+	//     pct-encoded   = "%" HEXDIG HEXDIG
+	//     sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+	//                   / "*" / "+" / "," / ";" / "="
+	//
+	// So we need to escape everything that is not in unreserved, sub-delims, or
+	// ":" and "@".
+
+	// unreserved (alphanumeric)
+	if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' {
+		return false
+	}
+
+	switch c {
+	// unreserved (non-alphanumeric)
+	case '-', '.', '_', '~':
+		return false
+
+	// sub-delims
+	case '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=':
+		return false
+
+	// other pchars
+	case ':', '@':
+		return false
+	}
+
+	// Everything else must be escaped.
+	return true
+}
+
 func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRangeReaderParams, opts ...storageOption) (r *Reader, err error) {
 	/*ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.httpStorageClient.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()
@@ -822,7 +899,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		"//%s/download/storage/v1/b/%s/o/%s",
 		"storage.googleapis.com:443",
 		params.bucket,
-		params.object)
+		EncodePathSegment(params.object))
 
 	fmt.Println(opaque)
 
