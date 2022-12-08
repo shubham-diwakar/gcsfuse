@@ -46,7 +46,7 @@ func (b *bucket) NewReader(
 
 	// Switching to Go Storage Client Library.
 	if b.enableStorageClientLibrary {
-		rc, err = NewReaderSCL(ctx, req, b.name, b.storageClient)
+		rc, err = NewReaderSCL(ctx, req, b.name, b.storageClient, b.client)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (b *bucket) NewReader(
 // Custom function made to create a new reader using Storage Client Library.
 func NewReaderSCL(
 	ctx context.Context,
-	req *ReadObjectRequest, bucketName string, storageClient *storage.Client) (rc io.ReadCloser, err error) {
+	req *ReadObjectRequest, bucketName string, storageClient *storage.Client, httpClient *http.Client) (rc io.ReadCloser, err error) {
 	// If client is "nil", it means that there was some problem in initializing client in newBucket function of bucket.go file.
 	if storageClient == nil {
 		err = fmt.Errorf("Error in creating client through Go Storage Library.")
@@ -174,7 +174,7 @@ func NewReaderSCL(
 
 	// Creating a NewRangeReader instance.
 	startTime := time.Now()
-	r, err := obj.NewRangeReader(ctx, start, length)
+	r, err := obj.NewRangeReader(ctx, start, length, httpClient)
 	latencyMs := float64(time.Since(startTime).Microseconds()) / 1000.0
 
 	if err != nil {

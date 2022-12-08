@@ -92,7 +92,7 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 // decompressive transcoding per https://cloud.google.com/storage/docs/transcoding
 // that file will be served back whole, regardless of the requested range as
 // Google Cloud Storage dictates.
-func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64) (r *Reader, err error) {
+func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client) (r *Reader, err error) {
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()
 
@@ -165,7 +165,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64)
 
 		var res *http.Response
 		err = run(ctx, func() error {
-			res, err = o.c.hc.Do(req)
+			res, err = httpClient.Do(req)
 		/*	fmt.Println(res.Status)
 			fmt.Println(res.Proto)*/
 			if err != nil {
