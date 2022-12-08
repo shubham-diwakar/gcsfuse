@@ -51,8 +51,8 @@ func (bh *bucketHandle) Name() string {
 }
 
 func (bh *bucketHandle) NewReader(
-		ctx context.Context,
-		req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+	ctx context.Context,
+	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	// Construct an appropriate URL.
 	//
 	// The documentation (https://goo.gl/9zeA98) is vague about how this is
@@ -64,7 +64,7 @@ func (bh *bucketHandle) NewReader(
 	// each of the bucket and object names are encoded into a single path
 	// segment, as defined by RFC 3986.
 	fmt.Println("before bucket segment")
-	bucketSegment := httputil.EncodePathSegment(bh.Name())
+	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
 	fmt.Println("before object")
 	objectSegment := httputil.EncodePathSegment(req.Name)
 	opaque := fmt.Sprintf(
@@ -135,7 +135,7 @@ func (bh *bucketHandle) NewReader(
 			// from the server, treat this as an empty body. See makeRangeHeaderValue
 			// for more details.
 			if req.Range != nil &&
-					typed.Code == http.StatusRequestedRangeNotSatisfiable {
+				typed.Code == http.StatusRequestedRangeNotSatisfiable {
 				err = nil
 				googleapi.CloseBody(httpRes)
 				rc = ioutil.NopCloser(strings.NewReader(""))
