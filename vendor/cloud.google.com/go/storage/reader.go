@@ -79,7 +79,7 @@ type ReaderObjectAttrs struct {
 //
 // The caller must call Close on the returned Reader when done reading.
 func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
-	return o.NewRangeReader(ctx, 0, -1)
+	return o.NewRangeReader(ctx, 0, -1, nil)
 }
 
 // NewRangeReader reads part of an object, reading at most length bytes
