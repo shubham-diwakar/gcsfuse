@@ -831,7 +831,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		query.Set("generation", fmt.Sprintf("%d", params.gen))
 	}
 
-	query.Set("userProject", "BillingProject")
+	//query.Set("userProject", "BillingProject")
 
 /*	if b.billingProject != "" {
 		query.Set("userProject", b.billingProject)
