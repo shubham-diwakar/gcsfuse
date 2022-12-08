@@ -901,7 +901,6 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		params.bucket,
 		EncodePathSegment(params.object))
 
-	fmt.Println(opaque)
 
 	query := make(url.Values)
 	query.Set("alt", "media")
@@ -943,8 +942,6 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
 //	n = int64(br.Limit - br.Start)
 
-  fmt.Println("Printing range")
-	fmt.Println(hdr)
 	req.Header.Set("Range", hdr)
 	// Define a function that initiates a Read with offset and length, assuming we
 	httpRes, err := params.httpClient.Do(req)
