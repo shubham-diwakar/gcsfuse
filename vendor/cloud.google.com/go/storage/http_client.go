@@ -820,7 +820,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	// The body contains the object data.
 	rc := httpRes.Body
 
-	// If the user requested a range and we didn't see HTTP 416 above, we require
+/*	// If the user requested a range and we didn't see HTTP 416 above, we require
 	// an HTTP 206 response and must truncate the body. See the notes on
 	// makeRangeHeaderValue.
 		if httpRes.StatusCode != http.StatusPartialContent {
@@ -830,7 +830,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 
 			return
 		}
-
+*/
 
 	return &Reader{
 		reader: rc,
