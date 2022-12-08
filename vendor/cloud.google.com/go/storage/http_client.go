@@ -771,7 +771,7 @@ func (c *httpStorageClient) RewriteObject(ctx context.Context, req *rewriteObjec
 }
 
 func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRangeReaderParams, opts ...storageOption) (r *Reader, err error) {
-	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.httpStorageClient.NewRangeReader")
+	/*ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.httpStorageClient.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()
 
 	s := callSettings(c.settings, opts...)
@@ -817,8 +817,45 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	if params.gen >= 0 {
 		req.URL.RawQuery = fmt.Sprintf("generation=%d", params.gen)
 	}
+*/
+	opaque := fmt.Sprintf(
+		"//%s/download/storage/v1/b/%s/o/%s",
+		"storage.googleapis.com:443",
+		params.bucket,
+		params.object)
+
+	query := make(url.Values)
+	query.Set("alt", "media")
+
+	if params.gen != 0 {
+		query.Set("generation", fmt.Sprintf("%d", params.gen))
+	}
+
+/*	if b.billingProject != "" {
+		query.Set("userProject", b.billingProject)
+	}*/
+
+	url := &url.URL{
+		Scheme:   "https",
+		Host:     "storage.googleapis.com:443",
+		Opaque:   opaque,
+		RawQuery: query.Encode(),
+	}
 
 
+
+	req := &http.Request{
+		Method:        "GET",
+		URL:           url,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Header:        make(http.Header),
+		Body:          nil,
+		ContentLength: 0,
+		Host:          "storage.googleapis.com:443",
+		Cancel:        ctx.Done(),
+	}
 	// Define a function that initiates a Read with offset and length, assuming we
 	httpRes, err := params.httpClient.Do(req)
 	if err != nil {
