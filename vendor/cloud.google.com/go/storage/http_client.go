@@ -831,6 +831,8 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		query.Set("generation", fmt.Sprintf("%d", params.gen))
 	}
 
+	query.Set("userProject", "BillingProject")
+
 /*	if b.billingProject != "" {
 		query.Set("userProject", b.billingProject)
 	}*/
@@ -856,6 +858,8 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		Host:          "storage.googleapis.com:443",
 		Cancel:        ctx.Done(),
 	}
+
+
 
 	hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
 //	n = int64(br.Limit - br.Start)
