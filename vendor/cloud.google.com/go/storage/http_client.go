@@ -800,6 +800,25 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		return nil, err
 	}
 
+	start := params.offset 
+	if params.length < 0 && start < 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d", start))
+	} else if params.length < 0 && start > 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", start))
+	} else if params.length > 0 {
+		// The end character isn't affected by how many bytes we've seen.
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, params.offset+params.length-1))
+	}
+	// We wait to assign conditions here because the generation number can change in between reopen() runs.
+	if err := setConditionsHeaders(req.Header, params.conds); err != nil {
+		return nil, err
+	}
+	// If an object generation is specified, include generation as query string parameters.
+	if params.gen >= 0 {
+		req.URL.RawQuery = fmt.Sprintf("generation=%d", params.gen)
+	}
+
+
 	// Define a function that initiates a Read with offset and length, assuming we
 	httpRes, err := params.httpClient.Do(req)
 	if err != nil {
