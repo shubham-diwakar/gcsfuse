@@ -939,10 +939,13 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 
 
 
-	hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
+	if params.length > 0 {
+		hdr := fmt.Sprintf("bytes=%d-%d", params.offset, params.offset+params.length)
+		req.Header.Set("Range", hdr)
+	}
 //	n = int64(br.Limit - br.Start)
 
-	req.Header.Set("Range", hdr)
+
 	// Define a function that initiates a Read with offset and length, assuming we
 	httpRes, err := params.httpClient.Do(req)
 	if err != nil {
