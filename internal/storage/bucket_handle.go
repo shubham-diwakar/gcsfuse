@@ -72,11 +72,14 @@ func (bh *bucketHandle) NewReader(
 		return
 	}
 
+	rc = gcs.NewLimitReadCloser(r, length)
+
 	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
 	// to match the return type interface.
-	rc = io.NopCloser(r)
+	rc = io.NopCloser(rc)
 	return
 }
+
 func (b *bucketHandle) DeleteObject(ctx context.Context, req *gcs.DeleteObjectRequest) error {
 	obj := b.bucket.Object(req.Name)
 

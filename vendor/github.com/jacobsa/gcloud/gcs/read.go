@@ -140,7 +140,7 @@ func (b *bucket) NewReader(
 			return
 		}
 
-		rc = newLimitReadCloser(rc, bodyLimit)
+		rc = NewLimitReadCloser(rc, bodyLimit)
 	}
 
 	return
@@ -254,7 +254,7 @@ func (lrc *limitReadCloser) Close() (err error) {
 // io.ReadCloser. Additional data is read up to EOF but discarded, making it
 // suitable for use with http.Response.Body which must be drained fully in
 // order to reuse the keep-alive connection.
-func newLimitReadCloser(wrapped io.ReadCloser, n int64) (rc io.ReadCloser) {
+func NewLimitReadCloser(wrapped io.ReadCloser, n int64) (rc io.ReadCloser) {
 	rc = &limitReadCloser{
 		n:       n,
 		wrapped: wrapped,
