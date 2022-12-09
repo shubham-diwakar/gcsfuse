@@ -22,12 +22,17 @@ package storage
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
+	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -54,34 +59,7 @@ func (bh *bucketHandle) NewReader(
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	fmt.Println("Calling via buckethandle")
 
-	start := int64(0)
-	length := int64(-1)
-	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
-	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
-	if req.Range != nil {
-		start = int64((*req.Range).Start)
-		end := int64((*req.Range).Limit)
-		length = end - start
-	}
 
-	obj := bh.bucket.Object(req.Name)
-
-	// Switching to the requested generation of object.
-	if req.Generation != 0 {
-		obj = obj.Generation(req.Generation)
-	}
-
-	// Creating a NewRangeReader instance.
-	r, err := obj.NewRangeReader(ctx, start, length, bh.wrapped.GetHttpClient())
-	if err != nil {
-		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
-		return
-	}
-
-	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
-	// to match the return type interface.
-	rc = io.NopCloser(r)
-	return
 
 	/*rc, err = bh.wrapped.NewReader(ctx, req)
 	return*/
@@ -95,7 +73,7 @@ func (bh *bucketHandle) NewReader(
 	// In Google-internal bug 19718068, it was clarified that the intent is that
 	// each of the bucket and object names are encoded into a single path
 	// segment, as defined by RFC 3986.
-	/*fmt.Println("before bucket segment")
+	fmt.Println("before bucket segment")
 	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
 	fmt.Println("before object")
 	objectSegment := httputil.EncodePathSegment(req.Name)
@@ -140,7 +118,7 @@ func (bh *bucketHandle) NewReader(
 
 	// Call the server.
 	startTime := time.Now()
-	httpRes, err := bh.httpClient.Do(httpReq)
+	httpRes, err := bh.wrapped.GetHttpClient().Do(httpReq)
 	latencyUs := time.Since(startTime).Microseconds()
 	latencyMs := float64(latencyUs) / 1000.0
 	fmt.Printf("Time for jacobsa: %g\n", latencyMs)
