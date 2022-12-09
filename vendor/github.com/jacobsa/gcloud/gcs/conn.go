@@ -136,7 +136,7 @@ func NewConn(cfg *ConnConfig) (c Conn, err error) {
 
 	// Set up the connection.
 	c = &conn{
-		client:          &http.Client{Transport: transport},
+		client:          &http.Client{Transport: transport, Timeout: 800*time.Millisecond},
 		url:             cfg.Url,
 		userAgent:       userAgent,
 		maxBackoffSleep: cfg.MaxBackoffSleep,
