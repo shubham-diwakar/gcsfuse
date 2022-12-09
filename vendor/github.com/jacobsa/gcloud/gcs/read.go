@@ -19,14 +19,14 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"net/http"
+	/*"net/http"
 	"net/url"
 	"strings"
-	"time"
+	"time"*/
 
-	"github.com/jacobsa/gcloud/httputil"
+//	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
+//	"google.golang.org/api/googleapi"
 )
 
 func (b *bucket) NewReader(
