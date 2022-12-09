@@ -34,7 +34,7 @@ import (
 )
 
 type bucketHandle struct {
-	gcs.Bucket
+	wrapped    gcs.Bucket
 	bucket     *storage.BucketHandle
 	bucketName string
 	httpClient *http.Client
@@ -46,9 +46,9 @@ func (bh *bucketHandle) Name() string {
 }
 
 func (bh *bucketHandle) NewReader(
-		ctx context.Context,
-		req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	rc, err = bh.Bucket.NewReader(ctx, req)
+	ctx context.Context,
+	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+	rc, err = bh.wrapped.NewReader(ctx, req)
 	return
 	// Construct an appropriate URL.
 	//

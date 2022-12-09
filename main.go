@@ -183,6 +183,7 @@ func mountWithArgs(
 
 		if flags.EnableStorageClientLibrary {
 			storageHandle, err = createStorageHandle(flags)
+			conn, err = getConnWithRetry(flags)
 		} else {
 			conn, err = getConnWithRetry(flags)
 		}

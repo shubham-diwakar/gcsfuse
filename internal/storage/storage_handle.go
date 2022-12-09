@@ -22,13 +22,14 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 )
 
 type StorageHandle interface {
-	BucketHandle(bucketName string) (bh *bucketHandle, err error)
+	BucketHandle(bucketName string, b gcs.Bucket) (bh *bucketHandle, err error)
 }
 
 type storageClient struct {
@@ -99,7 +100,7 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 	return
 }
 
-func (sh *storageClient) BucketHandle(bucketName string) (bh *bucketHandle, err error) {
+func (sh *storageClient) BucketHandle(bucketName string, b gcs.Bucket) (bh *bucketHandle, err error) {
 	storageBucketHandle := sh.client.Bucket(bucketName)
 	obj, err := storageBucketHandle.Attrs(context.Background())
 	if err != nil {
