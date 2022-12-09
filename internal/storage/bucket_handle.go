@@ -45,6 +45,10 @@ func (bh *bucketHandle) Name() string {
 
 }
 
+func (bh *bucketHandle) GetHttpClient() *http.Client {
+	return bh.wrapped.GetHttpClient()
+}
+
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
