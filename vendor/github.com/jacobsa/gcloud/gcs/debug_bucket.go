@@ -20,6 +20,7 @@ import (
 	"log"
 	"sync/atomic"
 	"time"
+	"net/http"
 
 	"golang.org/x/net/context"
 )
@@ -125,6 +126,10 @@ func (dr *debugReader) Close() (err error) {
 
 func (b *debugBucket) Name() string {
 	return b.wrapped.Name()
+}
+
+func (b *debugBucket) GetHttpClient() *http.Client {
+	return b.wrapped.GetHttpClient()
 }
 
 func (b *debugBucket) NewReader(

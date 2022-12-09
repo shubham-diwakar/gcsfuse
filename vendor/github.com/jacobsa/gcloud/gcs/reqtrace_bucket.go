@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/jacobsa/reqtrace"
 
@@ -102,6 +103,9 @@ func (rc *reportingReadCloser) Close() (err error) {
 
 func (b *reqtraceBucket) Name() string {
 	return b.Wrapped.Name()
+}
+func (b *reqtraceBucket) GetHttpClient() *http.Client {
+	return b.Wrapped.GetHttpClient()
 }
 
 func (b *reqtraceBucket) NewReader(

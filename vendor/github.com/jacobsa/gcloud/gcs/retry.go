@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/url"
 	"time"
+	"net/http"
 
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
@@ -345,6 +346,10 @@ func (rb *retryBucket) Name() (name string) {
 	name = rb.wrapped.Name()
 	return
 }
+func (b *retryBucket) GetHttpClient() *http.Client {
+	return b.wrapped.GetHttpClient()
+}
+
 
 func (rb *retryBucket) NewReader(
 	ctx context.Context,

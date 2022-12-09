@@ -13,6 +13,7 @@ import (
 	io "io"
 	runtime "runtime"
 	unsafe "unsafe"
+	"net/http"
 )
 
 type MockBucket interface {
@@ -180,6 +181,10 @@ func (m *mockBucket) ListObjects(p0 context.Context, p1 *ListObjectsRequest) (o0
 	}
 
 	return
+}
+
+func (b *mockBucket) GetHttpClient() *http.Client {
+	return nil
 }
 
 func (m *mockBucket) Name() (o0 string) {
