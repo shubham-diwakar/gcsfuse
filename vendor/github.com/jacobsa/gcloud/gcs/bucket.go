@@ -37,6 +37,7 @@ import (
 // All methods are safe for concurrent access.
 type Bucket interface {
 	Name() string
+	GetHttpClient() *http.Client
 
 	// Create a reader for the contents of a particular generation of an object.
 	// On a nil error, the caller must arrange for the reader to be closed when
@@ -133,6 +134,10 @@ type bucket struct {
 
 func (b *bucket) Name() string {
 	return b.name
+}
+
+func (b *bucket) GetHttpClient() *http.Client {
+	return b.client
 }
 
 func (b *bucket) ListObjects(

@@ -49,8 +49,38 @@ func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	fmt.Println("Calling via buckethandle")
-	rc, err = bh.wrapped.NewReader(ctx, req)
+
+	start := int64(0)
+	length := int64(-1)
+	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
+	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
+	if req.Range != nil {
+		start = int64((*req.Range).Start)
+		end := int64((*req.Range).Limit)
+		length = end - start
+	}
+
+	obj := bh.bucket.Object(req.Name)
+
+	// Switching to the requested generation of object.
+	if req.Generation != 0 {
+		obj = obj.Generation(req.Generation)
+	}
+
+	// Creating a NewRangeReader instance.
+	r, err := obj.NewRangeReader(ctx, start, length, bh.wrapped.GetHttpClient())
+	if err != nil {
+		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
+		return
+	}
+
+	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
+	// to match the return type interface.
+	rc = io.NopCloser(r)
 	return
+
+	/*rc, err = bh.wrapped.NewReader(ctx, req)
+	return*/
 	// Construct an appropriate URL.
 	//
 	// The documentation (https://goo.gl/9zeA98) is vague about how this is
