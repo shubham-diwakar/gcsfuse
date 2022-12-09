@@ -17,6 +17,7 @@ package gcsx
 import (
 	"errors"
 	"io"
+	"net/http"
 	"strings"
 	"unicode/utf8"
 
@@ -62,6 +63,10 @@ func (b *prefixBucket) localName(n string) string {
 
 func (b *prefixBucket) Name() string {
 	return b.wrapped.Name()
+}
+
+func (b *prefixBucket) GetHttpClient() *http.Client {
+	return b.wrapped.GetHttpClient()
 }
 
 func (b *prefixBucket) NewReader(
