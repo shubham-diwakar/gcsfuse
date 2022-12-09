@@ -48,6 +48,7 @@ func (bh *bucketHandle) Name() string {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+	fmt.Println("Calling via buckethandle")
 	rc, err = bh.wrapped.NewReader(ctx, req)
 	return
 	// Construct an appropriate URL.
