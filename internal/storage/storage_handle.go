@@ -107,6 +107,6 @@ func (sh *storageClient) BucketHandle(bucketName string, b gcs.Bucket) (bh *buck
 		return
 	}
 
-	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: obj.Name, httpClient: sh.httpClient}
+	bh = &bucketHandle{wrapped: b, bucket: storageBucketHandle, bucketName: obj.Name, httpClient: sh.httpClient}
 	return
 }
