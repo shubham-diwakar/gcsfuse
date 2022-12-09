@@ -19,6 +19,7 @@ import (
 	"io"
 	"sync"
 	"time"
+	"net/http"
 
 	"golang.org/x/net/context"
 
@@ -117,6 +118,9 @@ func (b *fastStatBucket) lookUp(name string) (hit bool, o *gcs.Object) {
 
 func (b *fastStatBucket) Name() string {
 	return b.wrapped.Name()
+}
+func (b *fastStatBucket) GetHttpClient() *http.Client {
+	return b.wrapped.GetHttpClient()
 }
 
 func (b *fastStatBucket) NewReader(

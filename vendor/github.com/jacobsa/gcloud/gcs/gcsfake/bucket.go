@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+	"net/http"
 
 	"github.com/jacobsa/gcloud/gcs"
 	"github.com/jacobsa/syncutil"
@@ -531,6 +532,10 @@ func (b *bucket) ListObjects(
 	}
 
 	return
+}
+
+func (b *bucket) GetHttpClient() *http.Client {
+	return nil
 }
 
 // LOCKS_EXCLUDED(b.mu)

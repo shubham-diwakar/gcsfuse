@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/monitor/tags"
@@ -111,6 +112,10 @@ type monitoringBucket struct {
 
 func (mb *monitoringBucket) Name() string {
 	return mb.wrapped.Name()
+}
+
+func (mb *monitoringBucket) GetHttpClient() *http.Client {
+	return mb.wrapped.GetHttpClient()
 }
 
 func (mb *monitoringBucket) NewReader(

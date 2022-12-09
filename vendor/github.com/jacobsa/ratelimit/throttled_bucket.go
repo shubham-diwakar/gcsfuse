@@ -16,6 +16,7 @@ package ratelimit
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/net/context"
@@ -49,6 +50,9 @@ type throttledBucket struct {
 
 func (b *throttledBucket) Name() string {
 	return b.wrapped.Name()
+}
+func (b *throttledBucket) GetHttpClient() *http.Client {
+	return b.wrapped.GetHttpClient()
 }
 
 func (b *throttledBucket) NewReader(
