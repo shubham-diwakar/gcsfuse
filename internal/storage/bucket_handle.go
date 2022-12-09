@@ -55,11 +55,9 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 }
 
 func (bh *bucketHandle) NewReader(
-	ctx context.Context,
-	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+		ctx context.Context,
+		req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	fmt.Println("Calling via buckethandle")
-
-
 
 	/*rc, err = bh.wrapped.NewReader(ctx, req)
 	return*/
@@ -145,7 +143,7 @@ func (bh *bucketHandle) NewReader(
 			// from the server, treat this as an empty body. See makeRangeHeaderValue
 			// for more details.
 			if req.Range != nil &&
-				typed.Code == http.StatusRequestedRangeNotSatisfiable {
+					typed.Code == http.StatusRequestedRangeNotSatisfiable {
 				err = nil
 				googleapi.CloseBody(httpRes)
 				rc = ioutil.NopCloser(strings.NewReader(""))
@@ -174,7 +172,7 @@ func (bh *bucketHandle) NewReader(
 	}
 
 	return
-	*/
+
 }
 
 func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
