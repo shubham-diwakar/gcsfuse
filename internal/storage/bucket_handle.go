@@ -22,17 +22,12 @@ package storage
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
-	"net/url"
-	"strings"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
-	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -47,12 +42,14 @@ type bucketHandle struct {
 
 func (bh *bucketHandle) Name() string {
 	return bh.bucketName
-	
+
 }
 
 func (bh *bucketHandle) NewReader(
-	ctx context.Context,
-	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+		ctx context.Context,
+		req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+	rc, err = bh.Bucket.NewReader(ctx, req)
+	return
 	// Construct an appropriate URL.
 	//
 	// The documentation (https://goo.gl/9zeA98) is vague about how this is
@@ -63,7 +60,7 @@ func (bh *bucketHandle) NewReader(
 	// In Google-internal bug 19718068, it was clarified that the intent is that
 	// each of the bucket and object names are encoded into a single path
 	// segment, as defined by RFC 3986.
-	fmt.Println("before bucket segment")
+	/*fmt.Println("before bucket segment")
 	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
 	fmt.Println("before object")
 	objectSegment := httputil.EncodePathSegment(req.Name)
@@ -164,7 +161,7 @@ func (bh *bucketHandle) NewReader(
 	}
 
 	return
-
+	*/
 }
 
 func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
