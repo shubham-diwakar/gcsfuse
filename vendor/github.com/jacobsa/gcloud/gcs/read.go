@@ -32,35 +32,8 @@ import (
 func (b *bucket) NewReader(
 	ctx context.Context,
 	req *ReadObjectRequest) (rc io.ReadCloser, err error) {
-	start := int64(0)
-	length := int64(-1)
-	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
-	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
-	if req.Range != nil {
-		start = int64((*req.Range).Start)
-		end := int64((*req.Range).Limit)
-		length = end - start
-	}
 
-	obj := b.bucketHandle.Object(req.Name)
-
-	// Switching to the requested generation of object.
-	if req.Generation != 0 {
-		obj = obj.Generation(req.Generation)
-	}
-
-	// Creating a NewRangeReader instance.
-	r, err := obj.NewRangeReader(ctx, start, length, b.client)
-	if err != nil {
-		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
-		return
-	}
-
-	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
-	// to match the return type interface.
-	rc = io.NopCloser(r)
-	return
-	/*// Construct an appropriate URL.
+	// Construct an appropriate URL.
 	//
 	// The documentation (https://goo.gl/9zeA98) is vague about how this is
 	// supposed to work. As of 2015-05-14, it has no prose but gives the example:
@@ -176,7 +149,7 @@ func (b *bucket) NewReader(
 		rc = NewLimitReadCloser(rc, bodyLimit)
 	}
 
-	return*/
+	return
 }
 
 // Given a [start, limit) range, create an HTTP 1.1 Range header which ensures
