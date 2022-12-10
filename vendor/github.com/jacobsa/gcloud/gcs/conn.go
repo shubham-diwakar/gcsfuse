@@ -161,11 +161,11 @@ func (c *conn) OpenBucket(
 
 	// Enable retry loops if requested.
 	// Enable retry loops if requested.
-	/*if c.maxBackoffSleep > 0 {
+	if c.maxBackoffSleep > 0 {
 		// TODO(jacobsa): Show the retries as distinct spans in the trace.
 		b = newRetryBucket(c.maxBackoffSleep, b)
 	}
-*/
+
 	// Enable tracing if appropriate.
 	if reqtrace.Enabled() {
 		b = &reqtraceBucket{
