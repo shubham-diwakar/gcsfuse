@@ -72,7 +72,7 @@ func (bh *bucketHandle) NewReader(
 	}
 
 	// Creating a NewRangeReader instance.
-	r, err := obj.NewRangeReader(ctx, start, length, bh.wrapped.GetHttpClient())
+	r, err := obj.NewRangeReader(ctx, start, length, bh.httpClient)
 	if err != nil {
 		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
 		return
