@@ -881,6 +881,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	}
 
 	// Create an HTTP request.
+	fmt.Println("Making json api call")
 	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
 	if err != nil {
 		err = fmt.Errorf("httputil.NewRequest: %v", err)
