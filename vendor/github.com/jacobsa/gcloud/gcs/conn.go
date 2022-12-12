@@ -26,7 +26,6 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/jacobsa/gcloud/httputil"
-	"github.com/jacobsa/reqtrace"
 
 	"google.golang.org/api/googleapi"
 	storagev1 "google.golang.org/api/storage/v1"
