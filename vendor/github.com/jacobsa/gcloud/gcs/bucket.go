@@ -25,7 +25,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	storagev1 "google.golang.org/api/storage/v1"
-	"google.golang.org/api/option"
 )
 
 // Bucket represents a GCS bucket, pre-bound with a bucket name and necessary
