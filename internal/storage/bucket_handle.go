@@ -95,7 +95,7 @@ func (bh *bucketHandle) NewReader(
 	}
 
 	// Call the server.
-	httpRes, err := bh.wrapped.GetHttpClient().Do(httpReq)
+	httpRes, err := bh.httpClient.Do(httpReq)
 	if err != nil {
 		return
 	}
