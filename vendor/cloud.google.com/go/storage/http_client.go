@@ -1054,40 +1054,6 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	}, nil
 }
 
-func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
-	// HACK(jacobsa): Above a certain number N, GCS appears to treat Range
-	// headers containing a last-byte-pos > N as syntactically invalid. I've
-	// experimentally determined that N is 2^63-1, which makes sense if they are
-	// using signed integers.
-	//
-	// Since math.MaxUint64 is a reasonable way to express "infinity" for a
-	// limit, and because we don't intend to support eight-exabyte objects,
-	// handle this by truncating the limit. This also prevents overflow when
-	// casting to int64 below.
-	if br.Limit > math.MaxInt64 {
-		br.Limit = math.MaxInt64
-	}
-
-	// Canonicalize ranges that the server will not like. We must do this because
-	// RFC 2616 §14.35.1 requires the last byte position to be greater than or
-	// equal to the first byte position.
-	if br.Limit < br.Start {
-		br.Start = 0
-		br.Limit = 0
-	}
-
-	// HTTP byte range specifiers are [min, max] double-inclusive, ugh. But we
-	// require the user to truncate, so there is no harm in requesting one byte
-	// extra at the end. If the range GCS sees goes past the end of the object,
-	// it truncates. If the range starts after the end of the object, it returns
-	// HTTP 416, which we require the user to handle.
-	hdr = fmt.Sprintf("bytes=%d-%d", br.Start, br.Limit)
-	n = int64(br.Limit - br.Start)
-
-	return
-}
-
-
 func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storageOption) (*io.PipeWriter, error) {
 	s := callSettings(c.settings, opts...)
 	errorf := params.setError
