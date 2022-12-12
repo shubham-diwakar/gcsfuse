@@ -15,20 +15,11 @@
 package gcsx
 
 import (
-	"fmt"
-	"io"
-	"io/ioutil"
-	"math"
 	"mime"
-	"net/http"
-	"net/url"
 	"path"
-	"strings"
 
 	"github.com/jacobsa/gcloud/gcs"
-	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 )
 
 // NewContentTypeBucket creates a wrapper bucket that guesses MIME types for
@@ -67,7 +58,7 @@ func (b contentTypeBucket) ComposeObjects(
 	return
 }
 
-func (b contentTypeBucket) NewReader(
+/*func (b contentTypeBucket) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	// Modify the request and call through.
@@ -181,3 +172,4 @@ func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
 
 	return
 }
+*/

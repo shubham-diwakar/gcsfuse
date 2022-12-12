@@ -22,12 +22,16 @@ package storage
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
+	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -54,21 +58,8 @@ func (bh *bucketHandle) NewReader(
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	fmt.Println("Calling via buckethandle")
 
-	rc, err = bh.wrapped.NewReader(ctx, req)
-	return
-	// Construct an appropriate URL.
-	//
-	// The documentation (https://goo.gl/9zeA98) is vague about how this is
-	// supposed to work. As of 2015-05-14, it has no prose but gives the example:
-	//
-	//     www.googleapis.com/download/storage/v1/b/<bucket>/o/<object>?alt=media
-	//
-	// In Google-internal bug 19718068, it was clarified that the intent is that
-	// each of the bucket and object names are encoded into a single path
-	// segment, as defined by RFC 3986.
-	/*fmt.Println("before bucket segment")
+	fmt.Println("Invoking from buckehandle bucket")
 	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
-	fmt.Println("before object")
 	objectSegment := httputil.EncodePathSegment(req.Name)
 	opaque := fmt.Sprintf(
 		"//%s/download/storage/v1/b/%s/o/%s",
@@ -90,31 +81,21 @@ func (bh *bucketHandle) NewReader(
 		RawQuery: query.Encode(),
 	}
 
-	fmt.Println("before http request")
 	// Create an HTTP request.
 	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
-	fmt.Println("after http request")
 	if err != nil {
 		err = fmt.Errorf("httputil.NewRequest: %v", err)
 		return
 	}
 
-	// Set a Range header, if appropriate.
-	var bodyLimit int64
 	if req.Range != nil {
 		var v string
-		v, bodyLimit = makeRangeHeaderValue(*req.Range)
+		v, _ = makeRangeHeaderValue(*req.Range)
 		httpReq.Header.Set("Range", v)
-		fmt.Println("Printing range")
-		fmt.Println(v)
 	}
 
 	// Call the server.
-	startTime := time.Now()
 	httpRes, err := bh.wrapped.GetHttpClient().Do(httpReq)
-	latencyUs := time.Since(startTime).Microseconds()
-	latencyMs := float64(latencyUs) / 1000.0
-	fmt.Printf("Time for jacobsa: %g\n", latencyMs)
 	if err != nil {
 		return
 	}
@@ -138,7 +119,7 @@ func (bh *bucketHandle) NewReader(
 			// from the server, treat this as an empty body. See makeRangeHeaderValue
 			// for more details.
 			if req.Range != nil &&
-					typed.Code == http.StatusRequestedRangeNotSatisfiable {
+				typed.Code == http.StatusRequestedRangeNotSatisfiable {
 				err = nil
 				googleapi.CloseBody(httpRes)
 				rc = ioutil.NopCloser(strings.NewReader(""))
@@ -151,22 +132,7 @@ func (bh *bucketHandle) NewReader(
 	// The body contains the object data.
 	rc = httpRes.Body
 
-	// If the user requested a range and we didn't see HTTP 416 above, we require
-	// an HTTP 206 response and must truncate the body. See the notes on
-	// makeRangeHeaderValue.
-	if req.Range != nil {
-		if httpRes.StatusCode != http.StatusPartialContent {
-			err = fmt.Errorf(
-				"Received unexpected status code %d instead of HTTP 206",
-				httpRes.StatusCode)
-
-			return
-		}
-
-		rc = io.NopCloser(gcs.NewLimitReadCloser(rc, bodyLimit))
-	}
-
-	return */
+	return
 
 }
 
