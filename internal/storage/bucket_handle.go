@@ -96,6 +96,7 @@ func (bh *bucketHandle) NewReader(
 
 	// Call the server.
 	httpRes, err := bh.httpClient.Do(httpReq)
+	fmt.Println("Yes we are in bucketHandle and using our own httpclient")
 	if err != nil {
 		return
 	}
@@ -131,6 +132,7 @@ func (bh *bucketHandle) NewReader(
 
 	// The body contains the object data.
 	rc = httpRes.Body
+	fmt.Println("returning from bucketHandle")
 
 	return
 
