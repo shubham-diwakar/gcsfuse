@@ -25,7 +25,6 @@ import (
 	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"google.golang.org/api/option"
 )
 
 type StorageHandle interface {
@@ -81,7 +80,7 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 	}
 
 	var sc *storage.Client
-	sc, err = storage.NewClient(ctx, option.WithHTTPClient(httpClient))
+	sc, err = storage.NewClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("go storage client creation failed: %w", err)
 		return
