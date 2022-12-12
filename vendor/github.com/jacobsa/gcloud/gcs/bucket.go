@@ -25,7 +25,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	storagev1 "google.golang.org/api/storage/v1"
-	"cloud.google.com/go/storage"
 	"google.golang.org/api/option"
 )
 
@@ -127,7 +126,6 @@ type Bucket interface {
 }
 
 type bucket struct {
-	bucketHandle     *storage.BucketHandle
 	client         *http.Client
 	url            *url.URL
 	userAgent      string
@@ -364,12 +362,8 @@ func newBucket(
 	userAgent string,
 	name string,
 	billingProject string) Bucket {
-	var sc *storage.Client
-	sc, _ = storage.NewClient(ctx, option.WithHTTPClient(client))
-	bh := sc.Bucket(name)
 	
 	return &bucket{
-		bucketHandle: bh,
 		client:         client,
 		url:            url,
 		userAgent:      userAgent,
