@@ -22,16 +22,12 @@ package storage
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
-	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -56,84 +52,35 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	fmt.Println("Calling via buckethandle")
-
-	fmt.Println("Invoking from buckehandle bucket")
-	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
-	objectSegment := httputil.EncodePathSegment(req.Name)
-	opaque := fmt.Sprintf(
-		"//%s/download/storage/v1/b/%s/o/%s",
-		"storage.googleapis.com:443",
-		bucketSegment,
-		objectSegment)
-
-	query := make(url.Values)
-	query.Set("alt", "media")
-
-	if req.Generation != 0 {
-		query.Set("generation", fmt.Sprintf("%d", req.Generation))
-	}
-
-	url := &url.URL{
-		Scheme:   "https",
-		Host:     "storage.googleapis.com:443",
-		Opaque:   opaque,
-		RawQuery: query.Encode(),
-	}
-
-	// Create an HTTP request.
-	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
-	if err != nil {
-		err = fmt.Errorf("httputil.NewRequest: %v", err)
-		return
-	}
-
+	fmt.Println("Reverting back to old code in bucketHandle")
+	// Initialising the starting offset and the length to be read by the reader.
+	start := int64(0)
+	length := int64(-1)
+	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
+	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
 	if req.Range != nil {
-		var v string
-		v, _ = makeRangeHeaderValue(*req.Range)
-		httpReq.Header.Set("Range", v)
+		start = int64((*req.Range).Start)
+		end := int64((*req.Range).Limit)
+		length = end - start
 	}
 
-	// Call the server.
-	httpRes, err := bh.httpClient.Do(httpReq)
-	fmt.Println("Yes we are in bucketHandle and using our own httpclient")
+	obj := bh.bucket.Object(req.Name)
+
+	// Switching to the requested generation of object.
+	if req.Generation != 0 {
+		obj = obj.Generation(req.Generation)
+	}
+
+	// Creating a NewRangeReader instance.
+	r, err := obj.NewRangeReader(ctx, start, length)
 	if err != nil {
+		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
 		return
 	}
 
-	// Close the body if we're returning in error.
-	defer func() {
-		if err != nil {
-			googleapi.CloseBody(httpRes)
-		}
-	}()
-
-	// Check for HTTP error statuses.
-	if err = googleapi.CheckResponse(httpRes); err != nil {
-		if typed, ok := err.(*googleapi.Error); ok {
-			// Special case: handle not found errors.
-			if typed.Code == http.StatusNotFound {
-				err = &gcs.NotFoundError{Err: typed}
-			}
-
-			// Special case: if the user requested a range and we received HTTP 416
-			// from the server, treat this as an empty body. See makeRangeHeaderValue
-			// for more details.
-			if req.Range != nil &&
-				typed.Code == http.StatusRequestedRangeNotSatisfiable {
-				err = nil
-				googleapi.CloseBody(httpRes)
-				rc = ioutil.NopCloser(strings.NewReader(""))
-			}
-		}
-
-		return
-	}
-
-	// The body contains the object data.
-	rc = httpRes.Body
-	fmt.Println("returning from bucketHandle")
-
+	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
+	// to match the return type interface.
+	rc = io.NopCloser(r)
 	return
 
 }
