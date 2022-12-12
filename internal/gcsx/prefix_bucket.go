@@ -16,13 +16,19 @@ package gcsx
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/jacobsa/gcloud/gcs"
+	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
+	"google.golang.org/api/googleapi"
+
+	"github.com/jacobsa/gcloud/gcs"
 )
 
 // NewPrefixBucket creates a view on the wrapped bucket that pretends as if only
@@ -76,7 +82,79 @@ func (b *prefixBucket) NewReader(
 	*mReq = *req
 	mReq.Name = b.wrappedName(req.Name)
 
-	rc, err = b.wrapped.NewReader(ctx, mReq)
+	fmt.Println("Invoking from prefix bucket")
+	bucketSegment := httputil.EncodePathSegment("swFethv-test-central")
+	objectSegment := httputil.EncodePathSegment(req.Name)
+	opaque := fmt.Sprintf(
+		"//%s/download/storage/v1/b/%s/o/%s",
+		"storage.googleapis.com:443",
+		bucketSegment,
+		objectSegment)
+
+	query := make(url.Values)
+	query.Set("alt", "media")
+
+	if req.Generation != 0 {
+		query.Set("generation", fmt.Sprintf("%d", req.Generation))
+	}
+
+	url := &url.URL{
+		Scheme:   "https",
+		Host:     "storage.googleapis.com:443",
+		Opaque:   opaque,
+		RawQuery: query.Encode(),
+	}
+
+	// Create an HTTP request.
+	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
+	if err != nil {
+		err = fmt.Errorf("httputil.NewRequest: %v", err)
+		return
+	}
+
+	if req.Range != nil {
+		var v string
+		v, _ = makeRangeHeaderValue(*req.Range)
+		httpReq.Header.Set("Range", v)
+	}
+
+	// Call the server.
+	httpRes, err := b.wrapped.GetHttpClient().Do(httpReq)
+	if err != nil {
+		return
+	}
+
+	// Close the body if we're returning in error.
+	defer func() {
+		if err != nil {
+			googleapi.CloseBody(httpRes)
+		}
+	}()
+
+	// Check for HTTP error statuses.
+	if err = googleapi.CheckResponse(httpRes); err != nil {
+		if typed, ok := err.(*googleapi.Error); ok {
+			// Special case: handle not found errors.
+			if typed.Code == http.StatusNotFound {
+				err = &gcs.NotFoundError{Err: typed}
+			}
+
+			// Special case: if the user requested a range and we received HTTP 416
+			// from the server, treat this as an empty body. See makeRangeHeaderValue
+			// for more details.
+			if req.Range != nil &&
+				typed.Code == http.StatusRequestedRangeNotSatisfiable {
+				err = nil
+				googleapi.CloseBody(httpRes)
+				rc = ioutil.NopCloser(strings.NewReader(""))
+			}
+		}
+
+		return
+	}
+
+	// The body contains the object data.
+	rc = httpRes.Body
 
 	return
 }
