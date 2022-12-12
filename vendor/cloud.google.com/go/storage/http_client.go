@@ -881,7 +881,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 	}
 
 	// Create an HTTP request.
-	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, b.userAgent)
+	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
 	if err != nil {
 		err = fmt.Errorf("httputil.NewRequest: %v", err)
 		return
