@@ -30,7 +30,6 @@ import (
 	"github.com/googlecloudplatform/gcsfuse/internal/monitor"
 	"github.com/jacobsa/gcloud/gcs"
 	"github.com/jacobsa/gcloud/gcs/gcscaching"
-	"github.com/jacobsa/ratelimit"
 	"github.com/jacobsa/timeutil"
 )
 
@@ -99,7 +98,8 @@ func setUpRateLimiting(
 	in gcs.Bucket,
 	opRateLimitHz float64,
 	egressBandwidthLimit float64) (out gcs.Bucket, err error) {
-	// If no rate limiting has been requested, just return the bucket.
+	out = in
+	/*// If no rate limiting has been requested, just return the bucket.
 	if !(opRateLimitHz > 0 || egressBandwidthLimit > 0) {
 		out = in
 		return
@@ -144,7 +144,7 @@ func setUpRateLimiting(
 	out = ratelimit.NewThrottledBucket(
 		opThrottle,
 		egressThrottle,
-		in)
+		in)*/
 
 	return
 }

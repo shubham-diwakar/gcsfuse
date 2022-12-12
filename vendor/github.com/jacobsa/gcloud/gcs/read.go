@@ -81,11 +81,9 @@ func (b *bucket) NewReader(
 		return
 	}
 
-	// Set a Range header, if appropriate.
-	var bodyLimit int64
 	if req.Range != nil {
 		var v string
-		v, bodyLimit = makeRangeHeaderValue(*req.Range)
+		v, _ = makeRangeHeaderValue(*req.Range)
 		httpReq.Header.Set("Range", v)
 		fmt.Println("Printing range")
 		fmt.Println(v)
@@ -134,7 +132,7 @@ func (b *bucket) NewReader(
 	// The body contains the object data.
 	rc = httpRes.Body
 
-	// If the user requested a range and we didn't see HTTP 416 above, we require
+	/*// If the user requested a range and we didn't see HTTP 416 above, we require
 	// an HTTP 206 response and must truncate the body. See the notes on
 	// makeRangeHeaderValue.
 	if req.Range != nil {
@@ -147,7 +145,7 @@ func (b *bucket) NewReader(
 		}
 
 		rc = NewLimitReadCloser(rc, bodyLimit)
-	}
+	}*/
 
 	return
 }

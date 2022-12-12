@@ -159,25 +159,6 @@ func (c *conn) OpenBucket(
 	options *OpenBucketOptions) (b Bucket, err error) {
 	b = newBucket(ctx, c.client, c.url, c.userAgent, options.Name, options.BillingProject)
 
-	// Enable retry loops if requested.
-	// Enable retry loops if requested.
-	/*if c.maxBackoffSleep > 0 {
-		// TODO(jacobsa): Show the retries as distinct spans in the trace.
-		b = newRetryBucket(c.maxBackoffSleep, b)
-	}*/
-
-	// Enable tracing if appropriate.
-	if reqtrace.Enabled() {
-		b = &reqtraceBucket{
-			Wrapped: b,
-		}
-	}
-
-	// Print debug output if requested.
-	if c.debugLogger != nil {
-		b = NewDebugBucket(b, c.debugLogger)
-	}
-
 	// Attempt to make an innocuous request to the bucket, snooping for HTTP 403
 	// errors that indicate bad credentials. This lets us warn the user early in
 	// the latter case, with a more helpful message than just "HTTP 403
