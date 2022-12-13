@@ -852,8 +852,9 @@ func shouldEscapeForPathSegment(c byte) bool {
 }
 
 func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRangeReaderParams, opts ...storageOption) (r *Reader, err error) {
+	/*params.jacobsaBucket.NewReader(ctx, nil)
 	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.httpStorageClient.NewRangeReader")
-	defer func() { trace.EndSpan(ctx, err) }()
+	defer func() { trace.EndSpan(ctx, err) }()*/
 
 	s := callSettings(c.settings, opts...)
 

@@ -22,17 +22,12 @@ package storage
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
-	"net/url"
-	"strings"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
-	"github.com/jacobsa/gcloud/httputil"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -57,104 +52,35 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	fmt.Println("NewReader now in bucket hanndle")
 	// Initialising the starting offset and the length to be read by the reader.
-	bucketSegment := httputil.EncodePathSegment("swethv-test-central")
-	objectSegment := httputil.EncodePathSegment(req.Name)
-	opaque := fmt.Sprintf(
-		"//%s/download/storage/v1/b/%s/o/%s",
-		"storage.googleapis.com",
-		bucketSegment,
-		objectSegment)
+	start := int64(0)
+	length := int64(-1)
+	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
+	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
+	if req.Range != nil {
+		start = int64((*req.Range).Start)
+		end := int64((*req.Range).Limit)
+		length = end - start
+	}
 
-	query := make(url.Values)
-	query.Set("alt", "media")
+	obj := bh.bucket.Object(req.Name)
 
+	// Switching to the requested generation of object.
 	if req.Generation != 0 {
-		query.Set("generation", fmt.Sprintf("%d", req.Generation))
+		obj = obj.Generation(req.Generation)
 	}
 
-	url := &url.URL{
-		Scheme:   "https",
-		Host:     "storage.googleapis.com",
-		Opaque:   opaque,
-		RawQuery: query.Encode(),
-	}
-
-	// Create an HTTP request.
-	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, "test")
+	// Creating a NewRangeReader instance.
+	r, err := obj.NewRangeReader(ctx, start, length, bh.httpClient, bh.wrapped)
 	if err != nil {
-		err = fmt.Errorf("httputil.NewRequest: %v", err)
+		err = fmt.Errorf("error in creating a NewRangeReader instance: %v", err)
 		return
 	}
 
-	if req.Range != nil {
-		var v string
-		v, _ = makeRangeHeaderValue(*req.Range)
-		httpReq.Header.Set("Range", v)
-		fmt.Println("Printing range")
-		fmt.Println(v)
-	}
-
-	// Call the server.
-	startTime := time.Now()
-	httpRes, err := bh.httpClient.Do(httpReq)
-	latencyUs := time.Since(startTime).Microseconds()
-	latencyMs := float64(latencyUs) / 1000.0
-	fmt.Printf("Time for jacobsa: %g\n", latencyMs)
-	if err != nil {
-		return
-	}
-
-	// Close the body if we're returning in error.
-	defer func() {
-		if err != nil {
-			googleapi.CloseBody(httpRes)
-		}
-	}()
-
-	// Check for HTTP error statuses.
-	if err = googleapi.CheckResponse(httpRes); err != nil {
-		if typed, ok := err.(*googleapi.Error); ok {
-			// Special case: handle not found errors.
-			if typed.Code == http.StatusNotFound {
-				err = &gcs.NotFoundError{Err: typed}
-			}
-
-			// Special case: if the user requested a range and we received HTTP 416
-			// from the server, treat this as an empty body. See makeRangeHeaderValue
-			// for more details.
-			if req.Range != nil &&
-				typed.Code == http.StatusRequestedRangeNotSatisfiable {
-				err = nil
-				googleapi.CloseBody(httpRes)
-				rc = ioutil.NopCloser(strings.NewReader(""))
-			}
-		}
-
-		return
-	}
-
-	// The body contains the object data.
-	rc = httpRes.Body
-
-	/*// If the user requested a range and we didn't see HTTP 416 above, we require
-	// an HTTP 206 response and must truncate the body. See the notes on
-	// makeRangeHeaderValue.
-	if req.Range != nil {
-		if httpRes.StatusCode != http.StatusPartialContent {
-			err = fmt.Errorf(
-				"Received unexpected status code %d instead of HTTP 206",
-				httpRes.StatusCode)
-
-			return
-		}
-
-		rc = NewLimitReadCloser(rc, bodyLimit)
-	}*/
-
+	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
+	// to match the return type interface.
+	rc = io.NopCloser(r)
 	return
-
 }
 
 func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {

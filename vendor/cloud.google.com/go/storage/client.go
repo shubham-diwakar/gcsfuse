@@ -23,6 +23,7 @@ import (
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/option"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
+	"github.com/jacobsa/gcloud/gcs"
 )
 
 // TODO(noahdietz): Move existing factory methods to this file.
@@ -291,6 +292,7 @@ type newRangeReaderParams struct {
 	offset         int64
 	readCompressed bool // Use accept-encoding: gzip. Only works for HTTP currently.
 	httpClient *http.Client
+	jacobsaBucket gcs.Bucket
 }
 
 type composeObjectRequest struct {

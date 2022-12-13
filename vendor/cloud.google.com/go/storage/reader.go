@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/internal/trace"
+	"github.com/jacobsa/gcloud/gcs"
 )
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
@@ -73,7 +73,7 @@ type ReaderObjectAttrs struct {
 //
 // The caller must call Close on the returned Reader when done reading.
 func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
-	return o.NewRangeReader(ctx, 0, -1, nil)
+	return o.NewRangeReader(ctx, 0, -1, nil, nil)
 }
 
 // NewRangeReader reads part of an object, reading at most length bytes
@@ -86,9 +86,9 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 // decompressive transcoding per https://cloud.google.com/storage/docs/transcoding
 // that file will be served back whole, regardless of the requested range as
 // Google Cloud Storage dictates.
-func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client) (r *Reader, err error) {
-	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
-	defer func() { trace.EndSpan(ctx, err) }()
+func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket) (r *Reader, err error) {
+	/*ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
+	defer func() { trace.EndSpan(ctx, err) }()*/
 
 	if err := o.validate(); err != nil {
 		return nil, err
@@ -114,6 +114,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 		conds:          o.conds,
 		readCompressed: o.readCompressed,
 		httpClient: httpClient,
+		jacobsaBucket: jacobsaBucket,
 	}
 
 	r, err = o.c.tc.NewRangeReader(ctx, params, opts...)
