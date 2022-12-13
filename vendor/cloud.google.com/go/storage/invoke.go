@@ -41,7 +41,9 @@ var xGoogDefaultHeader = fmt.Sprintf("gl-go/%s gccl/%s", version.Go(), sinternal
 // idempotency information. It then calls the function with or without retries
 // as appropriate, using the configured settings.
 func run(ctx context.Context, call func() error, retry *retryConfig, isIdempotent bool, setHeader func(string, int)) error {
-	attempts := 1
+	fmt.Println("run new code")
+	return call()
+	/*attempts := 1
 	invocationID := uuid.New().String()
 
 	if retry == nil {
@@ -67,7 +69,7 @@ func run(ctx context.Context, call func() error, retry *retryConfig, isIdempoten
 		err = call()
 		attempts++
 		return !errorFunc(err), err
-	})
+	})*/
 }
 
 func setRetryHeaderHTTP(req interface{ Header() http.Header }) func(string, int) {
