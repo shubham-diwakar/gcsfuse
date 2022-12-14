@@ -145,6 +145,7 @@ func (b *BucketHandle) Object(name string) *ObjectHandle {
 func (o *BucketHandle) NewRangeReaderinBucketHandle(ctx context.Context,  jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r io.ReadCloser, err error) {
 	fmt.Println("Calling jacobsa from buckethandle.go new method")
 	r, err =	jacobsaBucket.NewReader(ctx, readObjectRequest)
+	fmt.Println("Adding log in bucketHandle to confirm")
 	return
 }
 
