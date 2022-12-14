@@ -35,6 +35,9 @@ import (
 	raw "google.golang.org/api/storage/v1"
 	dpb "google.golang.org/genproto/googleapis/type/date"
 	"google.golang.org/protobuf/proto"
+	"github.com/jacobsa/gcloud/gcs"
+	"net/http"
+	"io"
 )
 
 // BucketHandle provides operations on a Google Cloud Storage bucket.
@@ -138,6 +141,12 @@ func (b *BucketHandle) Object(name string) *ObjectHandle {
 		userProject: b.userProject,
 		retry:       retry,
 	}
+}
+
+func (o *BucketHandle) NewRangeReaderinBucketHandle(ctx context.Context,  jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r io.ReadCloser, err error) {
+	fmt.Println("Calling jacobsa from buckethandle.go new method")
+	r, err =	jacobsaBucket.NewReader(ctx, readObjectRequest)
+	return
 }
 
 // Attrs returns the metadata for the bucket.

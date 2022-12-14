@@ -52,10 +52,10 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	rc, err = bh.wrapped.NewReader(ctx, req)
+	rc, err = bh.bucket.NewRangeReaderinBucketHandle(ctx, bh.wrapped, req)
 	return
-	/*	// Initialising the starting offset and the length to be read by the reader.
-		start := int64(0)
+	// Initialising the starting offset and the length to be read by the reader.
+	/*	start := int64(0)
 		length := int64(-1)
 		// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
 		// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
