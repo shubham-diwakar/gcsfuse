@@ -68,9 +68,9 @@ func (bh *bucketHandle) NewReader(
 	obj := bh.bucket.Object(req.Name)
 
 	// Switching to the requested generation of object.
-	if req.Generation != 0 {
+	/*if req.Generation != 0 {
 		obj = obj.Generation(req.Generation)
-	}
+	}*/
 
 	// Creating a NewRangeReader instance.
 	r, err := obj.NewRangeReader2(ctx, start, length, bh.httpClient, bh.wrapped, req)

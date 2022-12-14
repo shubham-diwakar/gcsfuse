@@ -80,8 +80,6 @@ func (b *bucket) NewReader(
 		var v string
 		v, _ = makeRangeHeaderValue(*req.Range)
 		httpReq.Header.Set("Range", v)
-		fmt.Println("Printing range")
-		fmt.Println(v)
 	}
 
 
