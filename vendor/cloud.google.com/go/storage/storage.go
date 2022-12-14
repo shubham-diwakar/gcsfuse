@@ -2008,6 +2008,7 @@ type retryConfig struct {
 
 func (r *retryConfig) clone() *retryConfig {
 	if r == nil {
+		fmt.Println("no cloning")
 		return nil
 	}
 

@@ -52,7 +52,7 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	rc, err = bh.bucket.NewRangeReaderinBucketHandle(ctx, bh.wrapped, req)
+	rc, err = bh.bucket.Object(req.Name).NewRangeReader2(ctx, 0, 0, bh.httpClient, bh.wrapped, req)
 	return
 	// Initialising the starting offset and the length to be read by the reader.
 	/*	start := int64(0)
