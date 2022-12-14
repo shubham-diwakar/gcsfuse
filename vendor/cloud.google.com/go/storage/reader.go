@@ -86,11 +86,16 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 // decompressive transcoding per https://cloud.google.com/storage/docs/transcoding
 // that file will be served back whole, regardless of the requested range as
 // Google Cloud Storage dictates.
-func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket) (r *Reader, err error) {
+func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r *Reader, err error) {
+	fmt.Println("Calling jacobsa from reader.go")
+ rc, err :=	jacobsaBucket.NewReader(ctx, readObjectRequest)
+ return &Reader{
+	 reader: rc,
+ }, err
 	/*ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
 	defer func() { trace.EndSpan(ctx, err) }()*/
 
-	if err := o.validate(); err != nil {
+	/*if err := o.validate(); err != nil {
 		return nil, err
 	}
 	if offset < 0 && length >= 0 {
@@ -119,7 +124,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 
 	r, err = o.c.tc.NewRangeReader(ctx, params, opts...)
 
-	return r, err
+	return r, err*/
 }
 
 // decompressiveTranscoding returns true if the request was served decompressed
