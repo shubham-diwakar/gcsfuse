@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/jacobsa/gcloud/gcs"
+	"cloud.google.com/go/internal/trace"
 )
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
@@ -88,14 +89,14 @@ func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
 // Google Cloud Storage dictates.
 func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r *Reader, err error) {
 	fmt.Println("Calling jacobsa from reader.go")
- rc, err :=	jacobsaBucket.NewReader(ctx, readObjectRequest)
+/* rc, err :=	jacobsaBucket.NewReader(ctx, readObjectRequest)
  return &Reader{
 	 reader: rc,
- }, err
-	/*ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
-	defer func() { trace.EndSpan(ctx, err) }()*/
+ }, err*/
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.NewRangeReader")
+	defer func() { trace.EndSpan(ctx, err) }()
 
-	/*if err := o.validate(); err != nil {
+	if err := o.validate(); err != nil {
 		return nil, err
 	}
 	if offset < 0 && length >= 0 {
@@ -124,7 +125,7 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 
 	r, err = o.c.tc.NewRangeReader(ctx, params, opts...)
 
-	return r, err*/
+	return r, err
 }
 
 func (o *ObjectHandle) NewRangeReader2(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r io.ReadCloser, err error) {
