@@ -36,7 +36,6 @@ import (
 	dpb "google.golang.org/genproto/googleapis/type/date"
 	"google.golang.org/protobuf/proto"
 	"github.com/jacobsa/gcloud/gcs"
-	"net/http"
 	"io"
 )
 
