@@ -69,11 +69,6 @@ func (b *bucket) NewReader(
 		RawQuery: query.Encode(),
 	}
 
-	fmt.Println("Swethav")
-	fmt.Print(b.url.Scheme)
-	fmt.Println(b.url.Host)
-	fmt.Println(opaque)
-	fmt.Println(query.Encode())
 	// Create an HTTP request.
 	httpReq, err := httputil.NewRequest(ctx, "GET", url, nil, 0, b.userAgent)
 	if err != nil {
