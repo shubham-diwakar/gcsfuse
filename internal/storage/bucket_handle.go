@@ -52,10 +52,10 @@ func (bh *bucketHandle) GetHttpClient() *http.Client {
 func (bh *bucketHandle) NewReader(
 	ctx context.Context,
 	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
-	/*	rc, err = bh.bucket.Object(req.Name).NewRangeReader2(ctx, 0, 0, bh.httpClient, bh.wrapped, req)
-		return*/
+	rc, err = bh.bucket.Object(req.Name).NewRangeReader2(ctx, 0, 0, bh.httpClient, bh.wrapped, req)
+	return
 	// Initialising the starting offset and the length to be read by the reader.
-	start := int64(0)
+	/* start := int64(0)
 	length := int64(-1)
 	// Following the semantics of NewReader method. Passing start, length as 0,-1 reads the entire file.
 	// https://github.com/GoogleCloudPlatform/gcsfuse/blob/34211af652dbaeb012b381a3daf3c94b95f65e00/vendor/cloud.google.com/go/storage/reader.go#L75
@@ -68,9 +68,9 @@ func (bh *bucketHandle) NewReader(
 	obj := bh.bucket.Object(req.Name)
 
 	// Switching to the requested generation of object.
-	/*if req.Generation != 0 {
+	if req.Generation != 0 {
 		obj = obj.Generation(req.Generation)
-	}*/
+	}
 
 	// Creating a NewRangeReader instance.
 	r, err := obj.NewRangeReader2(ctx, start, length, bh.httpClient, bh.wrapped, req)
@@ -82,7 +82,7 @@ func (bh *bucketHandle) NewReader(
 	// Converting io.Reader to io.ReadCloser by adding a no-op closer method
 	// to match the return type interface.
 	rc = io.NopCloser(r)
-	return
+	return */
 }
 
 func makeRangeHeaderValue(br gcs.ByteRange) (hdr string, n int64) {
