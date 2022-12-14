@@ -127,6 +127,12 @@ func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64,
 	return r, err*/
 }
 
+func (o *ObjectHandle) NewRangeReader2(ctx context.Context, offset, length int64, httpClient *http.Client, jacobsaBucket gcs.Bucket, readObjectRequest *gcs.ReadObjectRequest) (r io.ReadCloser, err error) {
+	fmt.Println("Calling jacobsa from reader.go new method")
+	r, err =	jacobsaBucket.NewReader(ctx, readObjectRequest)
+	return
+}
+
 // decompressiveTranscoding returns true if the request was served decompressed
 // and different than its original storage form. This happens when the "Content-Encoding"
 // header is "gzip".
