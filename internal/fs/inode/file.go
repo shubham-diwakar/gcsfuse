@@ -20,6 +20,7 @@ import (
 	"io"
 	"strconv"
 	"time"
+	"unsafe"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/contentcache"
 	"github.com/googlecloudplatform/gcsfuse/internal/gcsx"
@@ -70,7 +71,7 @@ type FileInode struct {
 	// INVARIANT: src.Name == name.GcsObjectName()
 	//
 	// GUARDED_BY(mu)
-	src gcs.Object
+	src *gcs.Object
 
 	// The current content of this inode, or nil if the source object is still
 	// authoritative.
@@ -101,6 +102,8 @@ func NewFileInode(
 	localFileCache bool,
 	contentCache *contentcache.ContentCache,
 	mtimeClock timeutil.Clock) (f *FileInode) {
+	fmt.Println("swethv")
+	fmt.Println(unsafe.Sizeof(bucket))
 	// Set up the basic struct.
 	f = &FileInode{
 		bucket:         bucket,
@@ -110,7 +113,7 @@ func NewFileInode(
 		attrs:          attrs,
 		localFileCache: localFileCache,
 		contentCache:   contentCache,
-		src:            *o,
+		src:            o,
 	}
 
 	f.lc.Init(id)
@@ -157,7 +160,7 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 	// Stat the object in GCS. ForceFetchFromGcs ensures object is fetched from
 	// gcs and not cache.
 	req := &gcs.StatObjectRequest{
-		Name: f.name.GcsObjectName(),
+		Name:              f.name.GcsObjectName(),
 		ForceFetchFromGcs: forceFetchFromGcs,
 	}
 	o, err = f.bucket.StatObject(ctx, req)
@@ -278,7 +281,7 @@ func (f *FileInode) Name() Name {
 func (f *FileInode) Source() *gcs.Object {
 	// Make a copy, since we modify f.src.
 	o := f.src
-	return &o
+	return o
 }
 
 // If true, it is safe to serve reads directly from the object given by
@@ -482,7 +485,7 @@ func (f *FileInode) SetMtime(
 
 	o, err := f.bucket.UpdateObject(ctx, req)
 	if err == nil {
-		f.src = *o
+		f.src = o
 		return
 	}
 
@@ -558,7 +561,7 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 
 	// If we wrote out a new object, we need to update our state.
 	if newObj != nil && !f.localFileCache {
-		f.src = *newObj
+		f.src = newObj
 		f.content.Destroy()
 		f.content = nil
 	}
