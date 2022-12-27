@@ -31,9 +31,8 @@ const (
 	MiB = 1024 * KiB
 )
 
-
 func HandleMemoryProfileSignals() {
-	profileOnce := func(path string) (err error) {
+	profileOnce := func(path string, path2 string) (err error) {
 		// Trigger a garbage collection to get up to date information (cf.
 		// https://goo.gl/aXVQfL).
 		runtime.GC()
@@ -46,8 +45,16 @@ func HandleMemoryProfileSignals() {
 			return
 		}
 
+		var f2 *os.File
+		f2, err = os.Create(path)
+		if err != nil {
+			err = fmt.Errorf("Create: %w", err)
+			return
+		}
+
 		defer func() {
 			closeErr := f.Close()
+			closeErr = f2.Close()
 			if err == nil {
 				err = closeErr
 			}
@@ -55,6 +62,7 @@ func HandleMemoryProfileSignals() {
 
 		// Dump to the file.
 		err = pprof.Lookup("heap").WriteTo(f, 0)
+		err = pprof.Lookup("allocs").WriteTo(f2, 0)
 		if err != nil {
 			err = fmt.Errorf("WriteTo: %w", err)
 			return
@@ -67,12 +75,13 @@ func HandleMemoryProfileSignals() {
 	signal.Notify(c, syscall.SIGUSR2)
 	for range c {
 		path := fmt.Sprintf("/tmp/mem-%d.pprof", time.Now().UnixNano())
+		path2 := fmt.Sprintf("/tmp/mem-alloc-%d.pprof", time.Now().UnixNano())
 
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		logger.Infof("Heap allocation: %d MiB", m.Alloc / MiB)
+		logger.Infof("Heap allocation: %d MiB", m.Alloc/MiB)
 
-		err := profileOnce(path)
+		err := profileOnce(path, path2)
 		if err == nil {
 			logger.Infof("Wrote memory profile to %s.", path)
 		} else {
