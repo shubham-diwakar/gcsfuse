@@ -152,14 +152,14 @@ func (f *FileInode) checkInvariants() {
 }
 
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *gcs.Object, b bool, err error) {
+func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool, syncerBucket gcsx.SyncerBucket) (o *gcs.Object, b bool, err error) {
 	// Stat the object in GCS. ForceFetchFromGcs ensures object is fetched from
 	// gcs and not cache.
 	req := &gcs.StatObjectRequest{
 		Name:              f.name.GcsObjectName(),
 		ForceFetchFromGcs: forceFetchFromGcs,
 	}
-	o, err = f.bucket.StatObject(ctx, req)
+	o, err = syncerBucket.StatObject(ctx, req)
 
 	// Special case: "not found" means we have been clobbered.
 	var notFoundErr *gcs.NotFoundError
@@ -183,8 +183,8 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 }
 
 // Open a reader for the generation of object we care about.
-func (f *FileInode) openReader(ctx context.Context) (io.ReadCloser, error) {
-	rc, err := f.bucket.NewReader(
+func (f *FileInode) openReader(ctx context.Context, syncerBucket gcsx.SyncerBucket) (io.ReadCloser, error) {
+	rc, err := syncerBucket.NewReader(
 		ctx,
 		&gcs.ReadObjectRequest{
 			Name:       f.src.Name,
@@ -199,11 +199,11 @@ func (f *FileInode) openReader(ctx context.Context) (io.ReadCloser, error) {
 // Ensure that content exists and is not stale
 //
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) ensureContent(ctx context.Context) (err error) {
+func (f *FileInode) ensureContent(ctx context.Context, syncerBucket gcsx.SyncerBucket) (err error) {
 	if f.localFileCache {
 		// Fetch content from the cache after validating generation numbers again
 		// Generation validation first occurs at inode creation/destruction
-		cacheObjectKey := &contentcache.CacheObjectKey{BucketName: f.bucket.Name(), ObjectName: f.name.objectName}
+		cacheObjectKey := &contentcache.CacheObjectKey{BucketName: syncerBucket.Name(), ObjectName: f.name.objectName}
 		if cacheObject, exists := f.contentCache.Get(cacheObjectKey); exists {
 			if cacheObject.ValidateGeneration(f.src.Generation, f.src.MetaGeneration) {
 				f.content = cacheObject.CacheFile
@@ -211,7 +211,7 @@ func (f *FileInode) ensureContent(ctx context.Context) (err error) {
 			}
 		}
 
-		rc, err := f.openReader(ctx)
+		rc, err := f.openReader(ctx, syncerBucket)
 		if err != nil {
 			err = fmt.Errorf("openReader Error: %w", err)
 			return err
@@ -232,7 +232,7 @@ func (f *FileInode) ensureContent(ctx context.Context) (err error) {
 			return
 		}
 
-		rc, err := f.openReader(ctx)
+		rc, err := f.openReader(ctx, syncerBucket)
 		if err != nil {
 			err = fmt.Errorf("openReader Error: %w", err)
 			return err
@@ -311,10 +311,10 @@ func (f *FileInode) DecrementLookupCount(n uint64) (destroy bool) {
 }
 
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) Destroy() (err error) {
+func (f *FileInode) Destroy(syncerBucket gcsx.SyncerBucket) (err error) {
 	f.destroyed = true
 	if f.localFileCache {
-		cacheObjectKey := &contentcache.CacheObjectKey{BucketName: f.bucket.Name(), ObjectName: f.name.objectName}
+		cacheObjectKey := &contentcache.CacheObjectKey{BucketName: syncerBucket.Name(), ObjectName: f.name.objectName}
 		f.contentCache.Remove(cacheObjectKey)
 	} else if f.content != nil {
 		f.content.Destroy()
@@ -324,7 +324,7 @@ func (f *FileInode) Destroy() (err error) {
 
 // LOCKS_REQUIRED(f.mu)
 func (f *FileInode) Attributes(
-	ctx context.Context) (attrs fuseops.InodeAttributes, err error) {
+	ctx context.Context, syncerBucket gcsx.SyncerBucket) (attrs fuseops.InodeAttributes, err error) {
 	attrs = f.attrs
 
 	// Obtain default information from the source object.
@@ -370,7 +370,7 @@ func (f *FileInode) Attributes(
 
 	// If the object has been clobbered, we reflect that as the inode being
 	// unlinked.
-	_, clobbered, err := f.clobbered(ctx, false)
+	_, clobbered, err := f.clobbered(ctx, false, syncerBucket)
 	if err != nil {
 		err = fmt.Errorf("clobbered: %w", err)
 		return
@@ -396,9 +396,9 @@ func (f *FileInode) Bucket() gcsx.SyncerBucket {
 func (f *FileInode) Read(
 	ctx context.Context,
 	dst []byte,
-	offset int64) (n int, err error) {
+	offset int64, syncerBucket gcsx.SyncerBucket) (n int, err error) {
 	// Make sure f.content != nil.
-	err = f.ensureContent(ctx)
+	err = f.ensureContent(ctx, syncerBucket)
 	if err != nil {
 		err = fmt.Errorf("ensureContent: %w", err)
 		return
@@ -424,9 +424,9 @@ func (f *FileInode) Read(
 func (f *FileInode) Write(
 	ctx context.Context,
 	data []byte,
-	offset int64) (err error) {
+	offset int64, syncerBucket gcsx.SyncerBucket) (err error) {
 	// Make sure f.content != nil.
-	err = f.ensureContent(ctx)
+	err = f.ensureContent(ctx, syncerBucket)
 	if err != nil {
 		err = fmt.Errorf("ensureContent: %w", err)
 		return
@@ -444,7 +444,8 @@ func (f *FileInode) Write(
 // LOCKS_REQUIRED(f.mu)
 func (f *FileInode) SetMtime(
 	ctx context.Context,
-	mtime time.Time) (err error) {
+	mtime time.Time,
+	syncerBucket gcsx.SyncerBucket) (err error) {
 	// If we have a local temp file, stat it.
 	var sr gcsx.StatResult
 	if f.content != nil {
@@ -479,7 +480,7 @@ func (f *FileInode) SetMtime(
 		},
 	}
 
-	o, err := f.bucket.UpdateObject(ctx, req)
+	o, err := syncerBucket.UpdateObject(ctx, req)
 	if err == nil {
 		f.src = *o
 		return
@@ -514,7 +515,7 @@ func (f *FileInode) SetMtime(
 // fails, the generation will not change.
 //
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) Sync(ctx context.Context) (err error) {
+func (f *FileInode) Sync(ctx context.Context, syncerBucket gcsx.SyncerBucket) (err error) {
 	// If we have not been dirtied, there is nothing to do.
 	if f.content == nil {
 		return
@@ -528,7 +529,7 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 	// properties and using that when object is synced below. StatObject by
 	// default sets the projection to full, which fetches all the object
 	// properties.
-	latestGcsObj, isClobbered, err := f.clobbered(ctx, true)
+	latestGcsObj, isClobbered, err := f.clobbered(ctx, true, syncerBucket)
 
 	// Clobbered is treated as being unlinked. There's no reason to return an
 	// error in that case. We simply return without syncing the object.
@@ -539,7 +540,7 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 	// Write out the contents if they are dirty.
 	// Object properties are also synced as part of content sync. Hence, passing
 	// the latest object fetched from gcs which has all the properties populated.
-	newObj, err := f.bucket.SyncObject(ctx, latestGcsObj, f.content)
+	newObj, err := syncerBucket.SyncObject(ctx, latestGcsObj, f.content)
 
 	// Special case: a precondition error means we were clobbered, which we treat
 	// as being unlinked. There's no reason to return an error in that case.
@@ -570,9 +571,9 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 // LOCKS_REQUIRED(f.mu)
 func (f *FileInode) Truncate(
 	ctx context.Context,
-	size int64) (err error) {
+	size int64, syncerBucket gcsx.SyncerBucket) (err error) {
 	// Make sure f.content != nil.
-	err = f.ensureContent(ctx)
+	err = f.ensureContent(ctx, syncerBucket)
 	if err != nil {
 		err = fmt.Errorf("ensureContent: %w", err)
 		return
@@ -585,9 +586,9 @@ func (f *FileInode) Truncate(
 }
 
 // Ensures cache content on read if content cache enabled
-func (f *FileInode) CacheEnsureContent(ctx context.Context) (err error) {
+func (f *FileInode) CacheEnsureContent(ctx context.Context, syncerBucket gcsx.SyncerBucket) (err error) {
 	if f.localFileCache {
-		err = f.ensureContent(ctx)
+		err = f.ensureContent(ctx, syncerBucket)
 	}
 
 	return

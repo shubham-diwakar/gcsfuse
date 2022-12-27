@@ -392,14 +392,14 @@ func (d *dirInode) DecrementLookupCount(n uint64) (destroy bool) {
 }
 
 // LOCKS_REQUIRED(d)
-func (d *dirInode) Destroy() (err error) {
+func (d *dirInode) Destroy(syncerBucket gcsx.SyncerBucket) (err error) {
 	// Nothing interesting to do.
 	return
 }
 
 // LOCKS_REQUIRED(d)
 func (d *dirInode) Attributes(
-	ctx context.Context) (attrs fuseops.InodeAttributes, err error) {
+	ctx context.Context, syncerBucket gcsx.SyncerBucket) (attrs fuseops.InodeAttributes, err error) {
 	// Set up basic attributes.
 	attrs = d.attrs
 	attrs.Nlink = 1
@@ -531,7 +531,7 @@ func (d *dirInode) readObjects(
 		MaxResults:               MaxResultsForListObjectsCall,
 		// Setting Projection param to noAcl since fetching owner and acls are not
 		// required.
-		ProjectionVal:            gcs.NoAcl,
+		ProjectionVal: gcs.NoAcl,
 	}
 
 	listing, err := d.bucket.ListObjects(ctx, req)

@@ -165,6 +165,7 @@ func NewFileSystem(
 	} else {
 		logger.Info("Set up root directory for bucket " + cfg.BucketName)
 		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName)
+		fs.syncerBucket = syncerBucket
 		if err != nil {
 			return nil, fmt.Errorf("SetUpBucket: %w", err)
 		}
@@ -366,6 +367,8 @@ type fileSystem struct {
 	//
 	// GUARDED_BY(mu)
 	nextHandleID fuseops.HandleID
+
+	syncerBucket gcsx.SyncerBucket
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -829,7 +832,7 @@ func (fs *fileSystem) syncFile(
 	ctx context.Context,
 	f *inode.FileInode) (err error) {
 	// Sync the inode.
-	err = f.Sync(ctx)
+	err = f.Sync(ctx, fs.syncerBucket)
 	if err != nil {
 		err = fmt.Errorf("FileInode.Sync: %w", err)
 		return
@@ -882,7 +885,7 @@ func (fs *fileSystem) unlockAndDecrementLookupCount(in inode.Inode, N uint64) {
 
 	// Now we can destroy the inode if necessary.
 	if shouldDestroy {
-		destroyErr := in.Destroy()
+		destroyErr := in.Destroy(fs.syncerBucket)
 		if destroyErr != nil {
 			logger.Infof("Error destroying inode %q: %v", name, destroyErr)
 		}
@@ -937,7 +940,7 @@ func (fs *fileSystem) getAttributes(
 	expiration time.Time,
 	err error) {
 	// Call through.
-	attr, err = in.Attributes(ctx)
+	attr, err = in.Attributes(ctx, fs.syncerBucket)
 	if err != nil {
 		return
 	}
@@ -1101,7 +1104,7 @@ func (fs *fileSystem) SetInodeAttributes(
 
 	// Set file mtimes.
 	if isFile && op.Mtime != nil {
-		err = file.SetMtime(ctx, *op.Mtime)
+		err = file.SetMtime(ctx, *op.Mtime, fs.syncerBucket)
 		if err != nil {
 			err = fmt.Errorf("SetMtime: %w", err)
 			return err
@@ -1110,7 +1113,7 @@ func (fs *fileSystem) SetInodeAttributes(
 
 	// Truncate files.
 	if isFile && op.Size != nil {
-		err = file.Truncate(ctx, int64(*op.Size))
+		err = file.Truncate(ctx, int64(*op.Size), fs.syncerBucket)
 		if err != nil {
 			err = fmt.Errorf("Truncate: %w", err)
 			return err
@@ -1748,7 +1751,7 @@ func (fs *fileSystem) ReadFile(
 	defer fh.Unlock()
 
 	// Serve the read.
-	op.BytesRead, err = fh.Read(ctx, op.Dst, op.Offset, fs.sequentialReadSizeMb)
+	op.BytesRead, err = fh.Read(ctx, op.Dst, op.Offset, fs.sequentialReadSizeMb, fs.syncerBucket)
 
 	// As required by fuse, we don't treat EOF as an error.
 	if err == io.EOF {
@@ -1789,7 +1792,7 @@ func (fs *fileSystem) WriteFile(
 	defer in.Unlock()
 
 	// Serve the request.
-	if err := in.Write(ctx, op.Data, op.Offset); err != nil {
+	if err := in.Write(ctx, op.Data, op.Offset, fs.syncerBucket); err != nil {
 		return err
 	}
 

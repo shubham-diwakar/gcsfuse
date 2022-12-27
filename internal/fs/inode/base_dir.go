@@ -28,9 +28,10 @@ import (
 )
 
 // An inode that
-//  (1) represents a base directory which contains a list of
-//      subdirectories as the roots of different GCS buckets;
-//  (2) implements BaseDirInode, allowing read only ops.
+//
+//	(1) represents a base directory which contains a list of
+//	    subdirectories as the roots of different GCS buckets;
+//	(2) implements BaseDirInode, allowing read only ops.
 type baseDirInode struct {
 	/////////////////////////
 	// Constant data
@@ -111,14 +112,14 @@ func (d *baseDirInode) DecrementLookupCount(n uint64) (destroy bool) {
 }
 
 // LOCKS_REQUIRED(d)
-func (d *baseDirInode) Destroy() (err error) {
+func (d *baseDirInode) Destroy(syncerBucket gcsx.SyncerBucket) (err error) {
 	// Nothing interesting to do.
 	return
 }
 
 // LOCKS_REQUIRED(d)
 func (d *baseDirInode) Attributes(
-	ctx context.Context) (attrs fuseops.InodeAttributes, err error) {
+	ctx context.Context, syncerBucket gcsx.SyncerBucket) (attrs fuseops.InodeAttributes, err error) {
 	// Set up basic attributes.
 	attrs = d.attrs
 	attrs.Nlink = 1

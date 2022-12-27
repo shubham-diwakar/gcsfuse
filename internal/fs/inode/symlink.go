@@ -17,6 +17,7 @@ package inode
 import (
 	"sync"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/gcsx"
 	"github.com/jacobsa/fuse/fuseops"
 	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/net/context"
@@ -129,13 +130,13 @@ func (s *SymlinkInode) DecrementLookupCount(n uint64) (destroy bool) {
 }
 
 // LOCKS_REQUIRED(s.mu)
-func (s *SymlinkInode) Destroy() (err error) {
+func (s *SymlinkInode) Destroy(syncerBucket gcsx.SyncerBucket) (err error) {
 	// Nothing to do.
 	return
 }
 
 func (s *SymlinkInode) Attributes(
-	ctx context.Context) (attrs fuseops.InodeAttributes, err error) {
+	ctx context.Context, syncerBucket gcsx.SyncerBucket) (attrs fuseops.InodeAttributes, err error) {
 	attrs = s.attrs
 	return
 }

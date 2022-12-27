@@ -41,7 +41,7 @@ type Inode interface {
 	IncrementLookupCount()
 
 	// Return up to date attributes for this inode.
-	Attributes(ctx context.Context) (fuseops.InodeAttributes, error)
+	Attributes(ctx context.Context, syncerBucket gcsx.SyncerBucket) (fuseops.InodeAttributes, error)
 
 	// Decrement the lookup count for the inode by the given amount.
 	//
@@ -54,7 +54,7 @@ type Inode interface {
 	// indeterminate state where no method should be called except Unlock.
 	//
 	// This method may block. Errors are for logging purposes only.
-	Destroy() (err error)
+	Destroy(syncerBucket gcsx.SyncerBucket) (err error)
 }
 
 // An inode owned by a gcs bucket.
