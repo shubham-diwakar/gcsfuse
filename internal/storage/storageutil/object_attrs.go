@@ -57,7 +57,7 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 		Owner:           attrs.Owner,
 		Size:            uint64(attrs.Size),
 		ContentEncoding: attrs.ContentEncoding,
-		//	MD5:             &md5,
+		MD5:             &md5,
 		//CRC32C:         &attrs.CRC32C,
 		MediaLink:      attrs.MediaLink,
 		Metadata:       attrs.Metadata,
@@ -70,7 +70,7 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 		ContentDisposition: attrs.ContentDisposition,
 		CustomTime:         attrs.CustomTime.Format(time.RFC3339),
 		EventBasedHold:     attrs.EventBasedHold,
-		//	Acl:                acl,
+		Acl:                acl,
 	}
 }
 
