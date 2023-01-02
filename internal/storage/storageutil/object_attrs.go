@@ -58,7 +58,7 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 		Size:            uint64(attrs.Size),
 		ContentEncoding: attrs.ContentEncoding,
 		//	MD5:             &md5,
-		CRC32C:         &attrs.CRC32C,
+		//CRC32C:         &attrs.CRC32C,
 		MediaLink:      attrs.MediaLink,
 		Metadata:       attrs.Metadata,
 		Generation:     attrs.Generation,
@@ -68,7 +68,7 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 		Updated:        attrs.Updated,
 		//ComponentCount: , (Field not found in attrs returned by Go Client.)
 		ContentDisposition: attrs.ContentDisposition,
-		CustomTime:         string(attrs.CustomTime.Format(time.RFC3339)),
+		CustomTime:         attrs.CustomTime.Format(time.RFC3339),
 		EventBasedHold:     attrs.EventBasedHold,
 		//	Acl:                acl,
 	}
