@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime/debug"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/storage"
@@ -160,10 +161,10 @@ func createStorageHandle(flags *flagStorage) (storageHandle storage.StorageHandl
 }
 
 func mountWithArgs(
-	bucketName string,
-	mountPoint string,
-	flags *flagStorage,
-	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error) {
+		bucketName string,
+		mountPoint string,
+		flags *flagStorage,
+		mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error) {
 	// Enable invariant checking if requested.
 	if flags.DebugInvariants {
 		locker.EnableInvariantsCheck()
@@ -213,9 +214,9 @@ func mountWithArgs(
 }
 
 func populateArgs(c *cli.Context) (
-	bucketName string,
-	mountPoint string,
-	err error) {
+		bucketName string,
+		mountPoint string,
+		err error) {
 	// Extract arguments.
 	switch len(c.Args()) {
 	case 1:
@@ -411,6 +412,7 @@ func main() {
 	// Make logging output better.
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
+	debug.SetGCPercent(0)
 	// Set up profiling handlers.
 	go perf.HandleCPUProfileSignals()
 	go perf.HandleMemoryProfileSignals()
