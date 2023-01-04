@@ -34,6 +34,8 @@ var bufSize int
 func init() {
 	pageSize = syscall.Getpagesize()
 	bufSize = pageSize + MaxWriteSize
+	fmt.Println("BufferSize")
+	fmt.Println(bufSize)
 }
 
 // An incoming message from the kernel, including leading fusekernel.InHeader
@@ -47,6 +49,7 @@ type InMessage struct {
 
 // NewInMessage creates a new InMessage with its storage initialized.
 func NewInMessage() *InMessage {
+	fmt.Println("creating new inmessage")
 	return &InMessage{
 		storage: make([]byte, bufSize),
 	}
