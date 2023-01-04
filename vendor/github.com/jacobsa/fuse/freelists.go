@@ -16,6 +16,7 @@ package fuse
 
 import (
 	"unsafe"
+	"fmt"
 
 	"github.com/jacobsa/fuse/internal/buffer"
 )
@@ -64,6 +65,7 @@ func (c *Connection) getOutMessage() *buffer.OutMessage {
 
 // LOCKS_EXCLUDED(c.mu)
 func (c *Connection) putOutMessage(x *buffer.OutMessage) {
+	fmt.Println("adding outmessage")
 	c.mu.Lock()
 	c.outMessages.Put(unsafe.Pointer(x))
 	c.mu.Unlock()

@@ -486,7 +486,7 @@ func (c *Connection) Reply(ctx context.Context, opErr error) {
 	fuseID := inMsg.Header().Unique
 
 	// Make sure we destroy the messages when we're done.
-	defer c.putInMessage(inMsg)
+	//defer c.putInMessage(inMsg)
 	defer c.putOutMessage(outMsg)
 
 	// Clean up state for this op.
