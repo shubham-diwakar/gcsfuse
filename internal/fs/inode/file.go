@@ -70,7 +70,7 @@ type FileInode struct {
 	// INVARIANT: src.Name == name.GcsObjectName()
 	//
 	// GUARDED_BY(mu)
-	src *gcs.Object
+	src gcs.MinObject
 
 	// The current content of this inode, or nil if the source object is still
 	// authoritative.
@@ -101,6 +101,14 @@ func NewFileInode(
 	localFileCache bool,
 	contentCache *contentcache.ContentCache,
 	mtimeClock timeutil.Clock) (f *FileInode) {
+	minObj := &gcs.MinObject{
+		Name:           o.Name,
+		Size:           o.Size,
+		Generation:     o.Generation,
+		MetaGeneration: o.MetaGeneration,
+		Updated:        o.Updated,
+		Metadata:       o.Metadata,
+	}
 	// Set up the basic struct.
 	f = &FileInode{
 		bucket:         bucket,
@@ -110,7 +118,7 @@ func NewFileInode(
 		attrs:          attrs,
 		localFileCache: localFileCache,
 		contentCache:   contentCache,
-		src:            o,
+		src:            *minObj,
 	}
 
 	f.lc.Init(id)
@@ -275,10 +283,10 @@ func (f *FileInode) Name() Name {
 // record is guaranteed not to be modified, and users must not modify it.
 //
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) Source() *gcs.Object {
+func (f *FileInode) Source() *gcs.MinObject {
 	// Make a copy, since we modify f.src.
 	o := f.src
-	return o
+	return &o
 }
 
 // If true, it is safe to serve reads directly from the object given by
@@ -482,7 +490,14 @@ func (f *FileInode) SetMtime(
 
 	o, err := f.bucket.UpdateObject(ctx, req)
 	if err == nil {
-		f.src = o
+		f.src = gcs.MinObject{
+			Name:           o.Name,
+			Size:           o.Size,
+			Generation:     o.Generation,
+			Metadata:       o.Metadata,
+			Updated:        o.Updated,
+			MetaGeneration: o.MetaGeneration,
+		}
 		return
 	}
 
@@ -558,7 +573,14 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 
 	// If we wrote out a new object, we need to update our state.
 	if newObj != nil && !f.localFileCache {
-		f.src = newObj
+		f.src = gcs.MinObject{
+			Name:           newObj.Name,
+			Size:           newObj.Size,
+			Updated:        newObj.Updated,
+			Metadata:       newObj.Metadata,
+			Generation:     newObj.Generation,
+			MetaGeneration: newObj.MetaGeneration,
+		}
 		f.content.Destroy()
 		f.content = nil
 	}
