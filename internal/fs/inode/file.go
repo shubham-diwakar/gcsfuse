@@ -39,7 +39,7 @@ type FileInode struct {
 	// Dependencies
 	/////////////////////////
 
-	bucket     gcsx.SyncerBucket
+	bucket     *gcsx.SyncerBucket
 	mtimeClock timeutil.Clock
 
 	/////////////////////////
@@ -97,7 +97,7 @@ func NewFileInode(
 	name Name,
 	o *gcs.Object,
 	attrs fuseops.InodeAttributes,
-	bucket gcsx.SyncerBucket,
+	bucket *gcsx.SyncerBucket,
 	localFileCache bool,
 	contentCache *contentcache.ContentCache,
 	mtimeClock timeutil.Clock) (f *FileInode) {
@@ -157,7 +157,7 @@ func (f *FileInode) clobbered(ctx context.Context, forceFetchFromGcs bool) (o *g
 	// Stat the object in GCS. ForceFetchFromGcs ensures object is fetched from
 	// gcs and not cache.
 	req := &gcs.StatObjectRequest{
-		Name: f.name.GcsObjectName(),
+		Name:              f.name.GcsObjectName(),
 		ForceFetchFromGcs: forceFetchFromGcs,
 	}
 	o, err = f.bucket.StatObject(ctx, req)
@@ -384,7 +384,7 @@ func (f *FileInode) Attributes(
 	return
 }
 
-func (f *FileInode) Bucket() gcsx.SyncerBucket {
+func (f *FileInode) Bucket() *gcsx.SyncerBucket {
 	return f.bucket
 }
 
