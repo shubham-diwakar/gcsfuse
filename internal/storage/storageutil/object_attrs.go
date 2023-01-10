@@ -50,10 +50,10 @@ func ObjectAttrsToBucketObjectnew(attrs *storage.ObjectAttrs, name string) *gcs.
 
 	// Setting the parameters in Object and doing conversions as necessary.
 	return &gcs.Object{
-		Name: name,
-		Size: uint64(attrs.Size),
-		/*ContentType:     attrs.ContentType,
-		ContentLanguage: attrs.ContentLanguage,
+		Name:        name,
+		Size:        uint64(attrs.Size),
+		ContentType: attrs.ContentType,
+		/*ContentLanguage: attrs.ContentLanguage,
 		CacheControl:    attrs.CacheControl,
 		Owner:           attrs.Owner,
 		Size:            uint64(attrs.Size),
