@@ -50,8 +50,8 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 
 	// Setting the parameters in Object and doing conversions as necessary.
 	return &gcs.Object{
-		Name:            attrs.Name,
-		ContentType:     attrs.ContentType,
+		Name: attrs.Name,
+		/*ContentType:     attrs.ContentType,
 		ContentLanguage: attrs.ContentLanguage,
 		CacheControl:    attrs.CacheControl,
 		Owner:           attrs.Owner,
@@ -70,7 +70,7 @@ func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 		ContentDisposition: attrs.ContentDisposition,
 		CustomTime:         string(attrs.CustomTime.Format(time.RFC3339)),
 		EventBasedHold:     attrs.EventBasedHold,
-		Acl:                acl,
+		Acl:                acl,*/
 	}
 }
 
