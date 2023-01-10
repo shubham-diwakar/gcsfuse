@@ -37,6 +37,43 @@ func convertACLRuleToObjectAccessControl(element storage.ACLRule) *storagev1.Obj
 	}
 }
 
+func ObjectAttrsToBucketObjectnew(attrs *storage.ObjectAttrs, name string) *gcs.Object {
+	// gcs.Object accepts []*storagev1.ObjectAccessControl instead of []ACLRule.
+	var acl []*storagev1.ObjectAccessControl
+	for _, element := range attrs.ACL {
+		acl = append(acl, convertACLRuleToObjectAccessControl(element))
+	}
+
+	// Converting MD5[] slice to MD5[md5.Size] type fixed array as accepted by GCSFuse.
+	var md5 [md5.Size]byte
+	copy(md5[:], attrs.MD5)
+
+	// Setting the parameters in Object and doing conversions as necessary.
+	return &gcs.Object{
+		Name: name,
+		/*ContentType:     attrs.ContentType,
+		ContentLanguage: attrs.ContentLanguage,
+		CacheControl:    attrs.CacheControl,
+		Owner:           attrs.Owner,
+		Size:            uint64(attrs.Size),
+		ContentEncoding: attrs.ContentEncoding,
+		MD5:             &md5,
+		CRC32C:          &attrs.CRC32C,
+		MediaLink:       attrs.MediaLink,
+		Metadata:        attrs.Metadata,
+		Generation:      attrs.Generation,
+		MetaGeneration:  attrs.Metageneration,
+		StorageClass:    attrs.StorageClass,
+		Deleted:         attrs.Deleted,
+		Updated:         attrs.Updated,
+		//ComponentCount: , (Field not found in attrs returned by Go Client.)
+		ContentDisposition: attrs.ContentDisposition,
+		CustomTime:         string(attrs.CustomTime.Format(time.RFC3339)),
+		EventBasedHold:     attrs.EventBasedHold,
+		Acl:                acl,*/
+	}
+}
+
 func ObjectAttrsToBucketObject(attrs *storage.ObjectAttrs) *gcs.Object {
 	// gcs.Object accepts []*storagev1.ObjectAccessControl instead of []ACLRule.
 	var acl []*storagev1.ObjectAccessControl

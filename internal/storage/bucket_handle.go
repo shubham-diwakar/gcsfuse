@@ -97,7 +97,7 @@ func (b *bucketHandle) StatObject(ctx context.Context, req *gcs.StatObjectReques
 	}
 
 	// Converting attrs to type *Object
-	o = storageutil.ObjectAttrsToBucketObject(attrs)
+	o = storageutil.ObjectAttrsToBucketObjectnew(attrs, req.Name)
 
 	return
 }
