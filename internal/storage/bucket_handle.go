@@ -105,19 +105,23 @@ func (b *bucketHandle) StatObject(ctx context.Context, req *gcs.StatObjectReques
 func (bh *bucketHandle) CreateObject(ctx context.Context, req *gcs.CreateObjectRequest) (o *gcs.Object, err error) {
 	obj := bh.bucket.Object(req.Name)
 
+	if req.GenerationPrecondition != nil && *req.GenerationPrecondition != 0 {
+		obj = obj.If(storage.Conditions{GenerationMatch: *req.GenerationPrecondition})
+		fmt.Printf("Filename: %s set generation to %d\n", req.Name, *req.GenerationPrecondition)
+	}
 	// GenerationPrecondition - If non-nil, the object will be created/overwritten
 	// only if the current generation for the object name is equal to the given value.
 	// Zero means the object does not exist.
 	// MetaGenerationPrecondition - If non-nil, the object will be created/overwritten
 	// only if the current metaGeneration for the object name is equal to the given value.
 	// Zero means the object does not exist.
-	if req.GenerationPrecondition != nil && *req.GenerationPrecondition != 0 && req.MetaGenerationPrecondition != nil && *req.MetaGenerationPrecondition != 0 {
+	/*if req.GenerationPrecondition != nil && *req.GenerationPrecondition != 0 && req.MetaGenerationPrecondition != nil && *req.MetaGenerationPrecondition != 0 {
 		obj = obj.If(storage.Conditions{GenerationMatch: *req.GenerationPrecondition, MetagenerationMatch: *req.MetaGenerationPrecondition})
 	} else if req.GenerationPrecondition != nil && *req.GenerationPrecondition != 0 {
 		obj = obj.If(storage.Conditions{GenerationMatch: *req.GenerationPrecondition})
 	} else if req.MetaGenerationPrecondition != nil && *req.MetaGenerationPrecondition != 0 {
 		obj = obj.If(storage.Conditions{MetagenerationMatch: *req.MetaGenerationPrecondition})
-	}
+	}*/
 
 	// Creating a NewWriter with requested attributes, using Go Storage Client.
 	// Chuck size for resumable upload is default i.e. 16MB.
@@ -140,6 +144,7 @@ func (bh *bucketHandle) CreateObject(ctx context.Context, req *gcs.CreateObjectR
 	attrs := wc.Attrs() // Retrieving the attributes of the created object.
 	// Converting attrs to type *Object.
 	o = storageutil.ObjectAttrsToBucketObject(attrs)
+	fmt.Printf("filename: %s created generation: %d\n", o.Name, o.Generation)
 	return
 }
 

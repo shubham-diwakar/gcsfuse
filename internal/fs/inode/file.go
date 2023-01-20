@@ -530,7 +530,9 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 	// properties and using that when object is synced below. StatObject by
 	// default sets the projection to full, which fetches all the object
 	// properties.
+	fmt.Printf("before clobbered object: %s with generation: %d\n", f.src.Name, f.src.Generation)
 	latestGcsObj, isClobbered, err := f.clobbered(ctx, true)
+	fmt.Printf("Latest object:%s with generation: %d\n", latestGcsObj.Name, latestGcsObj.Generation)
 
 	// Clobbered is treated as being unlinked. There's no reason to return an
 	// error in that case. We simply return without syncing the object.
