@@ -1,3 +1,17 @@
+// Copyright 2022 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package storageutil
 
 import (
@@ -79,6 +93,7 @@ func (t objectAttrsTest) TestObjectAttrsToBucketObjectMethod() {
 		Prefix:                  "Prefix",
 		Etag:                    "Etag",
 		CustomTime:              timeAttr,
+		ComponentCount:          7,
 	}
 	customeTimeExpected := string(attrs.CustomTime.Format(time.RFC3339))
 
@@ -101,7 +116,7 @@ func (t objectAttrsTest) TestObjectAttrsToBucketObjectMethod() {
 	ExpectEq(object.ContentEncoding, attrs.ContentEncoding)
 	ExpectEq(len(object.MD5), len(&md5Expected))
 	ExpectEq(cap(object.MD5), cap(&md5Expected))
-	ExpectEq(object.CRC32C, &attrs.CRC32C)
+	ExpectEq(*object.CRC32C, attrs.CRC32C)
 	ExpectEq(object.MediaLink, attrs.MediaLink)
 	ExpectEq(object.Metadata, attrs.Metadata)
 	ExpectEq(object.Generation, attrs.Generation)
@@ -113,6 +128,7 @@ func (t objectAttrsTest) TestObjectAttrsToBucketObjectMethod() {
 	ExpectEq(object.CustomTime, customeTimeExpected)
 	ExpectEq(object.EventBasedHold, attrs.EventBasedHold)
 	ExpectEq(object.Acl, acl)
+	ExpectEq(object.ComponentCount, attrs.ComponentCount)
 }
 
 func (t objectAttrsTest) TestConvertObjectAccessControlToACLRuleMethod() {
