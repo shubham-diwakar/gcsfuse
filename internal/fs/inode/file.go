@@ -71,7 +71,7 @@ type FileInode struct {
 	// INVARIANT: src.Name == name.GcsObjectName()
 	//
 	// GUARDED_BY(mu)
-	src storage.MinObject
+	src gcs.Object
 
 	// The current content of this inode, or nil if the source object is still
 	// authoritative.
@@ -111,7 +111,7 @@ func NewFileInode(
 		attrs:          attrs,
 		localFileCache: localFileCache,
 		contentCache:   contentCache,
-		src:            convertObjToMinObject(o),
+		src:            *o,
 	}
 
 	f.lc.Init(id)
@@ -276,7 +276,7 @@ func (f *FileInode) Name() Name {
 // record is guaranteed not to be modified, and users must not modify it.
 //
 // LOCKS_REQUIRED(f.mu)
-func (f *FileInode) Source() *storage.MinObject {
+func (f *FileInode) Source() *gcs.Object {
 	// Make a copy, since we modify f.src.
 	o := f.src
 	return &o
@@ -483,7 +483,7 @@ func (f *FileInode) SetMtime(
 
 	o, err := f.bucket.UpdateObject(ctx, req)
 	if err == nil {
-		f.src = convertObjToMinObject(o)
+		f.src = *o
 		return
 	}
 
@@ -559,7 +559,7 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 
 	// If we wrote out a new object, we need to update our state.
 	if newObj != nil && !f.localFileCache {
-		f.src = convertObjToMinObject(newObj)
+		f.src = *newObj
 		f.content.Destroy()
 		f.content = nil
 	}
