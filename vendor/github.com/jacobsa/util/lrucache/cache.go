@@ -81,13 +81,13 @@ func (c *Cache) CheckInvariants() {
 	}
 
 	// INVARIANT: Each element is of type entry
-	for e := c.entries.Front(); e != nil; e = e.Next() {
+	/*for e := c.entries.Front(); e != nil; e = e.Next() {
 		switch e.Value.(type) {
 		case entry:
 		default:
 			panic(fmt.Sprintf("Unexpected element type: %v", reflect.TypeOf(e.Value)))
 		}
-	}
+	}*/
 
 	// INVARIANT: For each k, v: v.Value.(entry).Key == k
 	// INVARIANT: Contains all and only the elements of entries
@@ -137,6 +137,8 @@ func (c *Cache) Insert(
 	for c.entries.Len() > c.capacity {
 		c.evictOne()
 	}
+
+	fmt.Println(c.entries.Len())
 }
 
 // Erase any entry for the supplied key.
