@@ -15,7 +15,6 @@
 package gcscaching
 
 import (
-	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -187,9 +186,10 @@ func (b *fastStatBucket) ComposeObjects(
 func (b *fastStatBucket) StatObject(
 	ctx context.Context,
 	req *gcs.StatObjectRequest) (o *gcs.Object, err error) {
-	// If fetching from gcs is enabled, directly make a call to GCS.
+	return b.StatObjectFromGcs(ctx, req)
+	/*// If fetching from gcs is enabled, directly make a call to GCS.
 	if req.ForceFetchFromGcs {
-		return b.StatObjectFromGcs(ctx, req)
+	
 	}
 
 	// Do we have an entry in the cache?
@@ -208,7 +208,7 @@ func (b *fastStatBucket) StatObject(
 		return
 	}
 
-	return b.StatObjectFromGcs(ctx, req)
+	return b.StatObjectFromGcs(ctx, req)*/
 }
 
 // LOCKS_EXCLUDED(b.mu)
@@ -266,8 +266,29 @@ func (b *fastStatBucket) StatObjectFromGcs(ctx context.Context, req *gcs.StatObj
 		return
 	}
 
+	minObject := &MinObject{
+		Name: o.Name,
+		Size: o.Size,
+		Generation: o.Generation,
+		MetaGeneration: o.MetaGeneration,
+		Updated: o.Updated,
+		Metadata: o.Metadata,
+	}
 	// Put the object in cache.
-	b.insert(o)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	expiration := b.clock.Now().Add(b.ttl)
+		b.cache.InsertMin(minObject, expiration)
 
 	return
+}
+
+type MinObject struct {
+	Name           string
+	Size           uint64
+	Generation     int64
+	MetaGeneration int64
+	Updated        time.Time
+	Metadata       map[string]string
 }

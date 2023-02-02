@@ -34,6 +34,7 @@ type StatCache interface {
 	//
 	// The entry will expire after the supplied time.
 	Insert(o *gcs.Object, expiration time.Time)
+	InsertMin(o *MinObject, expiration time.Time)
 
 	// Set up a negative entry for the given name, indicating that the name
 	// doesn't exist. Overwrite any existing entry for the name, positive or
@@ -74,6 +75,11 @@ type entry struct {
 	expiration time.Time
 }
 
+type entry2 struct {
+	o          *MinObject
+	expiration time.Time
+}
+
 // Should the supplied object for a new positive entry replace the given
 // existing entry?
 func shouldReplace(o *gcs.Object, existing entry) bool {
@@ -98,7 +104,7 @@ func shouldReplace(o *gcs.Object, existing entry) bool {
 
 func (sc *statCache) Insert(o *gcs.Object, expiration time.Time) {
 	// Is there already a better entry?
-	if existing := sc.c.LookUp(o.Name); existing != nil {
+	/*if existing := sc.c.LookUp(o.Name); existing != nil {
 		if !shouldReplace(o, existing.(entry)) {
 			return
 		}
@@ -106,6 +112,19 @@ func (sc *statCache) Insert(o *gcs.Object, expiration time.Time) {
 
 	// Insert an entry.
 	e := entry{
+		o:          o,
+		expiration: expiration,
+	}
+
+	sc.c.Insert(o.Name, e)*/
+}
+
+func (sc *statCache) InsertMin(o *MinObject, expiration time.Time) {
+	// Is there already a better entry?
+
+
+	// Insert an entry.
+	e := entry2{
 		o:          o,
 		expiration: expiration,
 	}
