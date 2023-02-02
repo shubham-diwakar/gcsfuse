@@ -20,7 +20,7 @@ import (
 	"container/list"
 	"encoding/gob"
 	"fmt"
-	"reflect"
+	//"reflect"
 )
 
 // An LRU cache for arbitrary values indexed by string keys. External
