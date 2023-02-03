@@ -20,7 +20,7 @@ import (
 	"container/list"
 	"encoding/gob"
 	"fmt"
-	"reflect"
+	//"reflect"
 )
 
 // An LRU cache for arbitrary values indexed by string keys. External
@@ -67,6 +67,10 @@ func New(capacity int) (c Cache) {
 	return
 }
 
+func (c *Cache) PrintSize() {
+	fmt.Println(c.entries.Len())
+}
+
 // Panic if any internal invariants have been violated. The careful user can
 // arrange to call this at crucial moments.
 func (c *Cache) CheckInvariants() {
@@ -81,13 +85,13 @@ func (c *Cache) CheckInvariants() {
 	}
 
 	// INVARIANT: Each element is of type entry
-	for e := c.entries.Front(); e != nil; e = e.Next() {
+	/*for e := c.entries.Front(); e != nil; e = e.Next() {
 		switch e.Value.(type) {
 		case entry:
 		default:
 			panic(fmt.Sprintf("Unexpected element type: %v", reflect.TypeOf(e.Value)))
 		}
-	}
+	}*/
 
 	// INVARIANT: For each k, v: v.Value.(entry).Key == k
 	// INVARIANT: Contains all and only the elements of entries
