@@ -130,6 +130,7 @@ func (sc *statCache) InsertMin(o *MinObject, expiration time.Time) {
 	}
 
 	sc.c.Insert(o.Name, e)
+	sc.c.PrintSize()
 }
 
 func (sc *statCache) AddNegativeEntry(name string, expiration time.Time) {

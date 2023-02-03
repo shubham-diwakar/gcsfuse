@@ -67,6 +67,11 @@ func New(capacity int) (c Cache) {
 	return
 }
 
+func (c *Cache) PrintSize() {
+	fmt.Println(c.entries.Len())
+}
+
+
 // Panic if any internal invariants have been violated. The careful user can
 // arrange to call this at crucial moments.
 func (c *Cache) CheckInvariants() {
