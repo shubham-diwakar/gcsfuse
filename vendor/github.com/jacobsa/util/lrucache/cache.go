@@ -143,7 +143,6 @@ func (c *Cache) Insert(
 		c.evictOne()
 	}
 
-	fmt.Println(c.entries.Len())
 }
 
 // Erase any entry for the supplied key.
