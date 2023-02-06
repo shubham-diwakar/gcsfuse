@@ -147,6 +147,11 @@ func sendAndRetry(ctx context.Context, client *http.Client, req *http.Request, r
 			status = resp.StatusCode
 		}
 
+		if status != 429 {
+			fmt.Println("Printing non 429 error")
+			fmt.Println(err)
+		}
+
 		// Check if we can retry the request. A retry can only be done if the error
 		// is retryable and the request body can be re-created using GetBody (this
 		// will not be possible if the body was unbuffered).
