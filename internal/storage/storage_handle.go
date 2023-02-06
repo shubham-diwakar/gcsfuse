@@ -80,6 +80,9 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		Timeout: clientConfig.HttpClientTimeout,
 	}
 
+	fmt.Println("printing timeout")
+	fmt.Println(clientConfig.HttpClientTimeout.Microseconds())
+
 	// Setting UserAgent through RoundTripper middleware
 	httpClient.Transport = &userAgentRoundTripper{
 		wrapped:   httpClient.Transport,
