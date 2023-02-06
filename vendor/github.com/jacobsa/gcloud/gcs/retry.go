@@ -152,9 +152,11 @@ func expBackoff(
 		}
 
 		typed, ok := err.(*googleapi.Error)
-		if !ok || typed.Code != 429 || err != io.EOF {
-			fmt.Println("Received error")
-			fmt.Println(err)
+		if  !ok || typed.Code != 429 {
+			if err != io.EOF {
+				fmt.Println("Received error")
+				fmt.Println(err)
+			}
 		}
 
 
