@@ -151,6 +151,8 @@ func expBackoff(
 			return
 		}
 
+		fmt.Printf("Received error")
+
 		// Do we want to retry?
 		if !shouldRetry(err) {
 			// Special case: don't spam up the logs for EOF, which io.Reader returns
