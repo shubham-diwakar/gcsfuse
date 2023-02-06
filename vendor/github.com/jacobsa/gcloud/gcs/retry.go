@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
-	"net"
-	"net/url"
+	/*"net"
+	"net/url"*/
 	"time"
 
 	"golang.org/x/net/context"
