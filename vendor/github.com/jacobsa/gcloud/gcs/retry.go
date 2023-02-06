@@ -151,7 +151,11 @@ func expBackoff(
 			return
 		}
 
-		fmt.Printf("Received error")
+		typed, ok := err.(*googleapi.Error)
+		if typed.Code != 429 || !ok {
+			fmt.Printf("Receive error")
+		}
+
 
 		// Do we want to retry?
 		if !shouldRetry(err) {
