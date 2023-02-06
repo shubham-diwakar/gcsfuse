@@ -21,7 +21,7 @@ import (
 	"io"
 	"net"
 	"net/http"
-//	"net/url"
+	"net/url"
 	"strings"
 
 	"cloud.google.com/go/internal"
@@ -30,8 +30,8 @@ import (
 	"github.com/google/uuid"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/googleapi"
-	/*"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"*/
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var defaultRetry *retryConfig = &retryConfig{}
@@ -141,9 +141,9 @@ func ShouldRetry(err error) bool {
 	// https://grpc.github.io/grpc/core/md_doc_http-grpc-status-mapping.html.
 	//
 	// This is only necessary for the experimental gRPC-based media operations.
-	/*if st, ok := status.FromError(err); ok && st.Code() == codes.Unavailable {
+	if st, ok := status.FromError(err); ok && st.Code() == codes.Unavailable {
 		return true
-	}*/
+	}
 	// Unwrap is only supported in go1.13.x+
 	if e, ok := err.(interface{ Unwrap() error }); ok {
 		return ShouldRetry(e.Unwrap())
