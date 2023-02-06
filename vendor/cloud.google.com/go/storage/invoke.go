@@ -103,20 +103,26 @@ func ShouldRetry(err error) bool {
 		return false
 	}
 	if errors.Is(err, io.ErrUnexpectedEOF) {
+		fmt.Println("Retrying becasue of EOF error")
 		return true
 	}
 
 	switch e := err.(type) {
 	case *net.OpError:
 		if strings.Contains(e.Error(), "use of closed network connection") {
+			fmt.Println("Retrying becasue of operror")
 			// TODO: check against net.ErrClosed (go 1.16+) instead of string
 			return true
 		}
 	case *googleapi.Error:
 		// Retry on 408, 429, and 5xx, according to
 		// https://cloud.google.com/storage/docs/exponential-backoff.
+		if e.Code != 429 {
+			fmt.Println("errorcode")
+			fmt.Println(e.Code)
+		}
 		return e.Code == 408 || e.Code == 429 || (e.Code >= 500 && e.Code < 600)
-	case *url.Error:
+	/*case *url.Error:
 		// Retry socket-level errors ECONNREFUSED and ECONNRESET (from syscall).
 		// Unfortunately the error type is unexported, so we resort to string
 		// matching.
@@ -129,18 +135,18 @@ func ShouldRetry(err error) bool {
 	case interface{ Temporary() bool }:
 		if e.Temporary() {
 			return true
-		}
+		}*/
 	}
 	// HTTP 429, 502, 503, and 504 all map to gRPC UNAVAILABLE per
 	// https://grpc.github.io/grpc/core/md_doc_http-grpc-status-mapping.html.
 	//
 	// This is only necessary for the experimental gRPC-based media operations.
-	if st, ok := status.FromError(err); ok && st.Code() == codes.Unavailable {
+	/*if st, ok := status.FromError(err); ok && st.Code() == codes.Unavailable {
 		return true
-	}
+	}*/
 	// Unwrap is only supported in go1.13.x+
-	if e, ok := err.(interface{ Unwrap() error }); ok {
+/*	if e, ok := err.(interface{ Unwrap() error }); ok {
 		return ShouldRetry(e.Unwrap())
-	}
+	}*/
 	return false
 }
