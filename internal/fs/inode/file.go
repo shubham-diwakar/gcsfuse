@@ -530,13 +530,13 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 	// properties and using that when object is synced below. StatObject by
 	// default sets the projection to full, which fetches all the object
 	// properties.
-	latestGcsObj, isClobbered, err := f.clobbered(ctx, true)
+	latestGcsObj, _, err := f.clobbered(ctx, true)
 
 	// Clobbered is treated as being unlinked. There's no reason to return an
 	// error in that case. We simply return without syncing the object.
-	if err != nil || isClobbered {
-		return
-	}
+	/*if err != nil || isClobbered {
+		return e
+	}*/
 
 	// Write out the contents if they are dirty.
 	// Object properties are also synced as part of content sync. Hence, passing
@@ -545,11 +545,11 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 
 	// Special case: a precondition error means we were clobbered, which we treat
 	// as being unlinked. There's no reason to return an error in that case.
-	var preconditionErr *gcs.PreconditionError
+	/*var preconditionErr *gcs.PreconditionError
 	if errors.As(err, &preconditionErr) {
 		err = nil
 		return
-	}
+	}*/
 
 	// Propagate other errors.
 	if err != nil {
