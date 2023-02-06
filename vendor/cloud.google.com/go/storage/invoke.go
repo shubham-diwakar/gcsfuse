@@ -21,7 +21,7 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
+//	"net/url"
 	"strings"
 
 	"cloud.google.com/go/internal"
@@ -30,8 +30,8 @@ import (
 	"github.com/google/uuid"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/api/googleapi"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	/*"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"*/
 )
 
 var defaultRetry *retryConfig = &retryConfig{}
