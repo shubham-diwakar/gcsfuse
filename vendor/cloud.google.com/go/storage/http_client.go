@@ -1055,6 +1055,7 @@ func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storage
 			resp, err = call.Do()
 		}
 		if err != nil {
+			fmt.Println(err)
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
 				if gErr.Code != http.StatusPreconditionFailed {
