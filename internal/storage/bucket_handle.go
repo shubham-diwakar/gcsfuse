@@ -137,6 +137,7 @@ func (bh *bucketHandle) CreateObject(ctx context.Context, req *gcs.CreateObjectR
 		var gErr *googleapi.Error
 		if errors.As(err, &gErr) {
 			if gErr.Code == http.StatusPreconditionFailed {
+				fmt.Println(req.Name)
 				err = &gcs.PreconditionError{Err: err}
 				return
 			}
