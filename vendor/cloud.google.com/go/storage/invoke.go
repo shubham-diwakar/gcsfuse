@@ -122,7 +122,7 @@ func ShouldRetry(err error) bool {
 			fmt.Println(e.Code)
 		}*/
 		return e.Code == 408 || e.Code == 429 || (e.Code >= 500 && e.Code < 600)
-	/*case *url.Error:
+	case *url.Error:
 		// Retry socket-level errors ECONNREFUSED and ECONNRESET (from syscall).
 		// Unfortunately the error type is unexported, so we resort to string
 		// matching.
@@ -135,7 +135,7 @@ func ShouldRetry(err error) bool {
 	case interface{ Temporary() bool }:
 		if e.Temporary() {
 			return true
-		}*/
+		}
 	}
 	// HTTP 429, 502, 503, and 504 all map to gRPC UNAVAILABLE per
 	// https://grpc.github.io/grpc/core/md_doc_http-grpc-status-mapping.html.
@@ -145,8 +145,8 @@ func ShouldRetry(err error) bool {
 		return true
 	}*/
 	// Unwrap is only supported in go1.13.x+
-/*	if e, ok := err.(interface{ Unwrap() error }); ok {
+	if e, ok := err.(interface{ Unwrap() error }); ok {
 		return ShouldRetry(e.Unwrap())
-	}*/
+	}
 	return false
 }
