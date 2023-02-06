@@ -1056,14 +1056,14 @@ func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storage
 		if err != nil {
 			fmt.Println("Printing error")
 			fmt.Println(err)
-			var gErr *googleapi.Error
+			/*var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
 				if gErr.Code != http.StatusPreconditionFailed {
 					fmt.Println(err)
 				}
 			} else {
 				fmt.Println(err)
-			}
+			}*/
 			errorf(err)
 			pr.CloseWithError(err)
 			return
