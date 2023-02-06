@@ -72,7 +72,7 @@ func (b *bucket) startResumableUpload(
 
 	query := make(url.Values)
 	query.Set("projection", "full")
-	query.Set("uploadType", "multipart")
+	query.Set("uploadType", "resumable")
 
 	if req.GenerationPrecondition != nil {
 		query.Set("ifGenerationMatch", fmt.Sprint(*req.GenerationPrecondition))
