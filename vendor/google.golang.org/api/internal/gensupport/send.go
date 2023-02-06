@@ -147,7 +147,7 @@ func sendAndRetry(ctx context.Context, client *http.Client, req *http.Request, r
 			status = resp.StatusCode
 		}
 
-		if err != nil && status != 429 {
+		if status != 429 || err != nil {
 
 			fmt.Println("Printing non 429 error")
 			fmt.Println(err)
