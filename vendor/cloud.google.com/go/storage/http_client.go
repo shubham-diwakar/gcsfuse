@@ -976,7 +976,6 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 }
 
 func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storageOption) (*io.PipeWriter, error) {
-	fmt.Println("swethav reached here")
 	s := callSettings(c.settings, opts...)
 	errorf := params.setError
 	setObj := params.setObj
@@ -1055,6 +1054,7 @@ func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storage
 			resp, err = call.Do()
 		}
 		if err != nil {
+			fmt.Println("Printing error")
 			fmt.Println(err)
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
