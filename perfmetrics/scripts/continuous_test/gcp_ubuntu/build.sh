@@ -15,7 +15,7 @@ GCSFUSE_FLAGS="--implicit-dirs --max-conns-per-host 100 --experimental-enable-st
 BUCKET_NAME=swethv-testing-west
 MOUNT_POINT=gcs
 # The VM will itself exit if the gcsfuse mount fails.
-gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
+#gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
 chmod +x run_load_test_and_fetch_metrics.sh
 ./run_load_test_and_fetch_metrics.sh
 
