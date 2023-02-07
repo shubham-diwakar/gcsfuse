@@ -7,7 +7,7 @@ echo Installing gcsfuse
 GCSFUSE_VERSION=0.41.12
 curl -L -O https://github.com/GoogleCloudPlatform/gcsfuse/releases/download/v$GCSFUSE_VERSION/gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
 sudo dpkg --install gcsfuse_"$GCSFUSE_VERSION"_amd64.deb
-cd "~/gcsfuse/perfmetrics/scripts"
+cd "gcsfuse/perfmetrics/scripts"
 echo Mounting gcs bucket
 mkdir -p gcs
 LOG_FILE=log-$(date '+%Y-%m-%d').txt
