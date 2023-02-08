@@ -21,56 +21,56 @@ filename_format=$jobname.$jobnum.$filenum
 [1_thread]
 stonewall
 startdelay=300
-directory=gcs/50mb
-filesize=50M
+directory=gcs/200mb
+filesize=200M
 numjobs=64
 
 [1_thread]
 stonewall
 startdelay=670
-directory=gcs/50mb
-filesize=50M
+directory=gcs/200mb
+filesize=200M
 numjobs=96
 
 [1_thread]
 stonewall
 startdelay=1040
-directory=gcs/50mb
-filesize=50M
+directory=gcs/200mb
+filesize=200M
 numjobs=128
 
 [1_thread]
 stonewall
 startdelay=1410
-directory=gcs/50mb
-filesize=50M
+directory=gcs/200mb
+filesize=200M
 numjobs=160
 
 [1_thread]
 stonewall
 startdelay=1780
-directory=gcs/100mb
-filesize=100M
+directory=gcs/1gb
+filesize=1G
 numjobs=64
 
 [1_thread]
 stonewall
 startdelay=2150
-directory=gcs/100mb
-filesize=100M
+directory=gcs/1gb
+filesize=1G
 numjobs=96
 
 [1_thread]
 stonewall
 startdelay=2520
-directory=gcs/100mb
-filesize=100M
+directory=gcs/1gb
+filesize=1G
 numjobs=128
 
 [1_thread]
 stonewall
 startdelay=2890
-directory=gcs/100mb
-filesize=100M
+directory=gcs/1gb
+filesize=1G
 numjobs=160
 
