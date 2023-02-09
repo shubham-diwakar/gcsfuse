@@ -833,10 +833,11 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		var res *http.Response
 		err = run(ctx, func() error {
 			res, err = c.hc.Do(req)
-			fmt.Println(res.Proto)
+
 			if err != nil {
 				return err
 			}
+			fmt.Println(res.Proto)
 			if res.StatusCode == http.StatusNotFound {
 				res.Body.Close()
 				return ErrObjectNotExist
