@@ -789,6 +789,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		verb = "HEAD"
 	}
 	req, err := http.NewRequest(verb, u.String(), nil)
+//	fmt.Println(req.Proto)
 	if err != nil {
 		return nil, err
 	}
@@ -832,6 +833,7 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		var res *http.Response
 		err = run(ctx, func() error {
 			res, err = c.hc.Do(req)
+			fmt.Println(res.Proto)
 			if err != nil {
 				return err
 			}
