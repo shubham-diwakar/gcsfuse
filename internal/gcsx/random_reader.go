@@ -302,7 +302,6 @@ func (rr *randomReader) readFull(
 
 	// Call through.
 	n, err = io.ReadFull(rr.reader, p)
-	defer rr.reader.Close()
 
 	return
 }
