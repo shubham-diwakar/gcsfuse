@@ -66,8 +66,8 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		// For http2, change in MaxConnsPerHost doesn't affect the performance.
 		transport = &http.Transport{
 			DisableKeepAlives: true,
-			/*	MaxConnsPerHost:   clientConfig.MaxConnsPerHost,
-				ForceAttemptHTTP2: true,*/
+			MaxConnsPerHost:   clientConfig.MaxConnsPerHost,
+			//	ForceAttemptHTTP2: true,*/
 		}
 	}
 
