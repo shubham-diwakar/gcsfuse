@@ -262,11 +262,20 @@ func runCLIApp(c *cli.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("parsing flags failed: %w", err)
 	}
-
+	var logFile *os.File
 	if flags.Foreground && flags.LogFile != "" {
 		err = logger.InitLogFile(flags.LogFile, flags.LogFormat)
 		if err != nil {
 			return fmt.Errorf("init log file: %w", err)
+		} else {
+			logFile, err = os.OpenFile(
+				flags.LogFile,
+				os.O_WRONLY|os.O_CREATE|os.O_APPEND,
+				0644,
+			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -347,7 +356,7 @@ func runCLIApp(c *cli.Context) (err error) {
 		}
 
 		// Run.
-		err = daemonize.Run(path, args, env, os.Stdout)
+		err = daemonize.Run(path, args, env, os.Stdout, logFile)
 		if err != nil {
 			err = fmt.Errorf("daemonize.Run: %w", err)
 			return

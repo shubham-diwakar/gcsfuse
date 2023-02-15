@@ -152,7 +152,8 @@ func Run(
 	path string,
 	args []string,
 	env []string,
-	status io.Writer) (err error) {
+	status io.Writer,
+	stdErr *os.File) (err error) {
 	if status == nil {
 		status = ioutil.Discard
 	}
@@ -169,7 +170,7 @@ func Run(
 	startProcessErr := make(chan error, 1)
 	go func() {
 		defer pipeW.Close()
-		err := startProcess(path, args, env, pipeW)
+		err := startProcess(path, args, env, pipeW, stdErr)
 		if err != nil {
 			startProcessErr <- err
 		}
@@ -206,7 +207,8 @@ func startProcess(
 	path string,
 	args []string,
 	env []string,
-	pipeW *os.File) (err error) {
+	pipeW *os.File,
+	stdErr *os.File) (err error) {
 	cmd := exec.Command(path)
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Env = append(cmd.Env, env...)
@@ -224,10 +226,13 @@ func startProcess(
 
 	// Send along the write end of the pipe.
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=3", envVar))
-
+	cmd.Stderr = stdErr
 	// Start. Clean up in the background, ignoring errors.
 	err = cmd.Start()
-	go cmd.Wait()
+	go func() {
+		defer stdErr.Close()
+		cmd.Wait()
+	}()
 
 	return
 }
