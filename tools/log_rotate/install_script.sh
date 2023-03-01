@@ -89,4 +89,4 @@ else
 fi
 
 # Restart the syslog service after adding the syslog configuration.
-systemctl restart rsyslog
+systemctl restart rsyslog || exit 0
