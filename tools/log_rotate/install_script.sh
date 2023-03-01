@@ -34,7 +34,6 @@ if [ $? -eq 0 ]; then
         echo "Hourly cron setup for logrotate completed successfully"
 else
         echo "Please install linux package - cron"
-        exit 1
 fi
 
 chmod 775 /etc/cron.hourly/gcsfuse-logrotate
@@ -62,7 +61,6 @@ if [ $? -eq 0 ]; then
         echo "Logrotate config for gcsfuse updated successfully!"
 else
         echo "Please install linux package - logrotate"
-        exit 1
 fi
 
 # Syslog configuration to filter and redirect the logs from /var/log/syslog to
@@ -88,7 +86,6 @@ if [ $? -eq 0 ]; then
         echo "Syslog config for gcsfuse updated successfully!"
 else
         echo "Please install linux package - rsyslog"
-        exit 1
 fi
 
 # Restart the syslog service after adding the syslog configuration.

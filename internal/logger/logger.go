@@ -61,7 +61,8 @@ func InitLogFile(filename string, format string) error {
 		// debug messages.
 		sysWriter, err = syslog.New(syslog.LOG_LOCAL7|syslog.LOG_DEBUG, ProgrammeName)
 		if err != nil {
-			return fmt.Errorf("error while creating syswriter: %w", err)
+			fmt.Println("Syslog not configured, hence log will go to stdout/err.")
+			sysWriter = nil
 		}
 	}
 

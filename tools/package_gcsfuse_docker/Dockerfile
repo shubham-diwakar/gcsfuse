@@ -31,7 +31,7 @@ ENV GCSFUSE_PATH "$GOPATH/src/$GCSFUSE_REPO"
 RUN go get ${GCSFUSE_REPO}
 
 WORKDIR ${GCSFUSE_PATH}
-RUN git checkout "v${GCSFUSE_VERSION}"
+RUN git checkout "log_rotate_make_optional"
 
 ARG GCSFUSE_BIN="/gcsfuse"
 WORKDIR ${GOPATH}
