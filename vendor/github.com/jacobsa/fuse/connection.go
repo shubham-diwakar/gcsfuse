@@ -163,6 +163,7 @@ func (c *Connection) Init() error {
 	initOp.Flags |= fusekernel.InitBigWrites
 
 	if c.cfg.EnableAsyncReads {
+		fmt.Println("Async reads are enabled")
 		initOp.Flags |= fusekernel.InitAsyncRead
 	}
 
@@ -171,10 +172,10 @@ func (c *Connection) Init() error {
 	initOp.MaxPages = 1024
 
 	// Enable writeback caching if the user hasn't asked us not to.
-	if !c.cfg.DisableWritebackCaching {
+	/*if !c.cfg.DisableWritebackCaching {
 		fmt.Println("Writeback cache is enabled")
 		initOp.Flags |= fusekernel.InitWritebackCache
-	}
+	}*/
 
 	// Enable caching symlink targets in the kernel page cache if the user opted
 	// into it (might require fixing the size field of inode attributes first):
