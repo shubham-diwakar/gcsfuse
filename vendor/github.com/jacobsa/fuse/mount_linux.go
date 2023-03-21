@@ -146,8 +146,10 @@ func mount(dir string, cfg *MountConfig, ready chan<- error) (*os.File, error) {
 		if err != nil {
 			return nil, err
 		}
+		data := cfg.toOptionsString() + "," + "max_read=5242880"
+		fmt.Println(data)
 		argv := []string{
-			"-o", cfg.toOptionsString(),
+			"-o", data,
 			"--",
 			dir,
 		}
