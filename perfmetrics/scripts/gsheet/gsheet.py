@@ -14,6 +14,7 @@ def _get_sheets_service_client():
 
 
 def write_to_google_sheet(worksheet: str, data) -> None:
+  pass
   """Calls the API to update the values of a sheet.
 
   Args:
@@ -22,7 +23,7 @@ def write_to_google_sheet(worksheet: str, data) -> None:
 
   Raises:
     HttpError: For any Google Sheets API call related errors
-  """
+    
   sheets_client = _get_sheets_service_client()
 
   # Getting the index of the last occupied row in the sheet
@@ -46,3 +47,4 @@ def write_to_google_sheet(worksheet: str, data) -> None:
           'values': data
       },
       range='{}!A2'.format(worksheet)).execute()
+  """

@@ -195,6 +195,20 @@ func (r *Reader) ReadAndExport(exporter Exporter) {
 	for _, producer := range producers {
 		data = append(data, producer.Read()...)
 	}
+	fmt.Println("Prince debug: Read and export data called")
+	for _, d := range data {
+		fmt.Println("name: ", d.Descriptor.Name)
+		if d.Descriptor.Name != "gcs/read_bytes_count" {
+			continue
+		}
+
+		for _, t := range d.TimeSeries {
+			fmt.Println("Start time: ", t.StartTime)
+			for _, p := range t.Points {
+				fmt.Println("Data point: ", p.Value, " ", p.Time)
+			}
+		}
+	}
 	// TODO: [rghetia] add metrics for errors.
 	exporter.ExportMetrics(ctx, data)
 }
