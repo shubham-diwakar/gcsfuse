@@ -91,6 +91,7 @@ func directmount(dir string, cfg *MountConfig) (*os.File, error) {
 	}
 	delete(opts, "subtype")
 	data += "," + mapToOptionsString(opts)
+	fmt.Println(data)
 
 	if cfg.DebugLogger != nil {
 		cfg.DebugLogger.Println("Starting the unix mounting")
@@ -137,6 +138,7 @@ func mount(dir string, cfg *MountConfig, ready chan<- error) (*os.File, error) {
 	// have the CAP_SYS_ADMIN capability.
 	dev, err := directmount(dir, cfg)
 	if err == errFallback {
+		fmt.Println("Trying fusermount")
 		if cfg.DebugLogger != nil {
 			cfg.DebugLogger.Println("Directmount failed. Trying fallback.")
 		}
