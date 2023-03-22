@@ -39,13 +39,13 @@ gcsfuse $GCSFUSE_FLAGS $BUCKET_NAME $MOUNT_POINT
 # Executing perf tests
 chmod +x run_load_test_and_fetch_metrics.sh
 ./run_load_test_and_fetch_metrics.sh
-# Copying gcsfuse logs to bucket
-gsutil -m cp $LOG_FILE gs://gcs-fuse-dashboard-fio/fio-gcsfuse-logs/
-
-# Deleting logs older than 10 days
-python3 utils/metrics_util.py gcs/fio-gcsfuse-logs/ 10
-
-# ls_metrics test
-cd "./ls_metrics"
-chmod +x run_ls_benchmark.sh
-./run_ls_benchmark.sh
+## Copying gcsfuse logs to bucket
+#gsutil -m cp $LOG_FILE gs://gcs-fuse-dashboard-fio/fio-gcsfuse-logs/
+#
+## Deleting logs older than 10 days
+#python3 utils/metrics_util.py gcs/fio-gcsfuse-logs/ 10
+#
+## ls_metrics test
+#cd "./ls_metrics"
+#chmod +x run_ls_benchmark.sh
+#./run_ls_benchmark.sh
