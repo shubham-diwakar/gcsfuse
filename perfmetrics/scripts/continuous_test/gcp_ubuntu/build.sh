@@ -15,8 +15,8 @@ sudo apt-get install fio -y
 
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
-#commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
-#git checkout $commitId
+commitId=$(git log --max-count=1 --pretty=%H)
+git checkout $commitId
 
 echo Building and installing gcsfuse
 go install ./tools/build_gcsfuse
