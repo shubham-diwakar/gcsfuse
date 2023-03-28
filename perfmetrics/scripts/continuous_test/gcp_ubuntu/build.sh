@@ -2,8 +2,8 @@
 set -e
 sudo apt-get update
 
-echo Installing git
-sudo apt-get install git
+#echo Installing git
+#sudo apt-get install git
 echo Installing pip
 sudo apt-get install pip -y
 echo Installing go-lang 1.19.5
@@ -15,8 +15,8 @@ sudo apt-get install fio -y
 
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
-commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
-git checkout $commitId
+#commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
+#git checkout $commitId
 
 echo Building and installing gcsfuse
 go install ./tools/build_gcsfuse
