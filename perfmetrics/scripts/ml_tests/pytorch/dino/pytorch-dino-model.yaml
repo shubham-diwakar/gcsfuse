@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Pod
+metadata:
+  name: pytorch-dino-model
+spec:
+    restartPolicy: Never
+    containers:
+    - name: training
+      image:
+      securityContext:
+        privileged: true
+      command:
+      - "/bin/sh"
+      - "-c"
+      - ./setup_container.sh;
+      resources:
+        limits:
+          cpu: "85"
+          memory: 200Gi
+          nvidia.com/gpu: "2"
+        requests:
+          cpu: "85"
+          memory: 200Gi
+          nvidia.com/gpu: "2"
+    serviceAccountName: gcs-csi
