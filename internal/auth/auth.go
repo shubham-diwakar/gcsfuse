@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/logger"
 	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -63,14 +64,17 @@ func GetTokenSource(
 	var method string
 
 	if keyFile != "" {
+		logger.Info("keyfile if block isused")
 		fmt.Println("key file if block is used")
 		tokenSrc, err = newTokenSourceFromPath(ctx, keyFile, scope)
 		method = "newTokenSourceFromPath"
 	} else if tokenUrl != "" {
+		logger.Info("Token url if block is used")
 		fmt.Println("token url if block is used")
 		tokenSrc, err = newProxyTokenSource(ctx, tokenUrl, reuseTokenFromUrl)
 		method = "newProxyTokenSource"
 	} else {
+		logger.Info("Default token source is used")
 		fmt.Println("Default token source is used")
 		tokenSrc, err = google.DefaultTokenSource(ctx, scope)
 		method = "DefaultTokenSource"
