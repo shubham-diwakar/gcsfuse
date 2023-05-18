@@ -81,9 +81,9 @@ func GetTokenSource(
 		method = "DefaultTokenSource"
 	}
 
-	if err != nil {
+	/*if err != nil {
 		err = fmt.Errorf("%s: %w", method, err)
 		return
-	}
+	}*/
 	return
 }
