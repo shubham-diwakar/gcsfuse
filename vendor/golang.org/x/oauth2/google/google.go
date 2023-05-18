@@ -241,16 +241,16 @@ type computeSource struct {
 
 func (cs computeSource) Token() (*oauth2.Token, error) {
 	fmt.Println("Compute token is getting executed")
-	err := fmt.Errorf("came to computesource.token")
+	err1 := fmt.Errorf("came to computesource.token")
 	if !metadata.OnGCE() {
 		return nil, errors.New("oauth2/google: can't get a token from the metadata service; not running on GCE")
 	}
 	acct := cs.account
 	if acct == "" {
 		acct = "default"
-		err = fmt.Errorf("using default account %v", err)
+		err1 = fmt.Errorf("using default account %v", err1)
 	} else {
-		err = fmt.Errorf("using account %v,  %v", acct, err)
+		err1 = fmt.Errorf("using account %v,  %v", acct, err1)
 	}
 	tokenURI := "instance/service-accounts/" + acct + "/token"
 	if len(cs.scopes) > 0 {
@@ -285,5 +285,5 @@ func (cs computeSource) Token() (*oauth2.Token, error) {
 	return tok.WithExtra(map[string]interface{}{
 		"oauth2.google.tokenSource":    "compute-metadata",
 		"oauth2.google.serviceAccount": acct,
-	}), err
+	}), err1
 }
