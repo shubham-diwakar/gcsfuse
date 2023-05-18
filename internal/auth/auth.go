@@ -63,12 +63,15 @@ func GetTokenSource(
 	var method string
 
 	if keyFile != "" {
+		fmt.Println("key file if block is used")
 		tokenSrc, err = newTokenSourceFromPath(ctx, keyFile, scope)
 		method = "newTokenSourceFromPath"
 	} else if tokenUrl != "" {
+		fmt.Println("token url if block is used")
 		tokenSrc, err = newProxyTokenSource(ctx, tokenUrl, reuseTokenFromUrl)
 		method = "newProxyTokenSource"
 	} else {
+		fmt.Println("Default token source is used")
 		tokenSrc, err = google.DefaultTokenSource(ctx, scope)
 		method = "DefaultTokenSource"
 	}
