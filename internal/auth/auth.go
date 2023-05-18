@@ -80,7 +80,9 @@ func GetTokenSource(
 
 		logger.Info(err.Error())
 		_, err1 := tokenSrc.Token()
-		logger.Info("token err : %v", err1.Error())
+		if err1 != nil {
+			logger.Info("token err : %v", err1.Error())
+		}
 		err = nil
 		method = "DefaultTokenSource"
 		fmt.Println(method)
