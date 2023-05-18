@@ -240,6 +240,7 @@ type computeSource struct {
 }
 
 func (cs computeSource) Token() (*oauth2.Token, error) {
+	fmt.Println("Compute token is getting executed")
 	err := fmt.Errorf("came to computesource.token")
 	if !metadata.OnGCE() {
 		return nil, errors.New("oauth2/google: can't get a token from the metadata service; not running on GCE")
