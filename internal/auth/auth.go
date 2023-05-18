@@ -77,7 +77,10 @@ func GetTokenSource(
 		logger.Info("Default token source is used")
 		fmt.Println("Default token source is used")
 		tokenSrc, err = google.DefaultTokenSource(ctx, scope)
+
 		logger.Info(err.Error())
+		_, err1 := tokenSrc.Token()
+		logger.Info("token err : %v", err1.Error())
 		err = nil
 		method = "DefaultTokenSource"
 		fmt.Println(method)
