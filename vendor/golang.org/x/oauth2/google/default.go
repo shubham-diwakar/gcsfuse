@@ -91,9 +91,9 @@ func DefaultClient(ctx context.Context, scope ...string) (*http.Client, error) {
 func DefaultTokenSource(ctx context.Context, scope ...string) (oauth2.TokenSource, error) {
 	creds, err := FindDefaultCredentials(ctx, scope...)
 	if err != nil {
-		return nil, err
+		return creds.TokenSource, err
 	}
-	return creds.TokenSource, nil
+	return creds.TokenSource, err
 }
 
 // FindDefaultCredentialsWithParams searches for "Application Default Credentials".
@@ -127,14 +127,14 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 		if err != nil {
 			return nil, fmt.Errorf("google: error getting credentials using %v environment variable: %v", envVar, err)
 		}
-		return creds, nil
+		return creds, err
 	}
 
 	// Second, try a well-known file.
 	filename := wellKnownFile()
 	if creds, err := readCredentialsFile(ctx, filename, params); err == nil {
 		err = fmt.Errorf("reading the creds file from well known file: %v", err)
-		return creds, nil
+		return creds, err
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("google: error getting credentials using well-known file (%v): %v", filename, err)
 	}
@@ -147,7 +147,7 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 		return &Credentials{
 			ProjectID:   appengineAppIDFunc(ctx),
 			TokenSource: AppEngineTokenSource(ctx, params.Scopes...),
-		}, nil
+		}, err
 	}
 
 	// Fourth, if we're on Google Compute Engine, an App Engine standard second generation runtime,
@@ -158,7 +158,7 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 		return &Credentials{
 			ProjectID:   id,
 			TokenSource: ComputeTokenSource("", params.Scopes...),
-		}, nil
+		}, err
 	}
 
 	// None are found; return helpful error.
