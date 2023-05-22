@@ -1518,8 +1518,6 @@ func (fs *fileSystem) renameFile(
 		return err
 	}
 
-	time.Sleep(1 * time.Minute)
-
 	// Delete behind. Make sure to delete exactly the generation we cloned, in
 	// case the referent of the name has changed in the meantime.
 	oldParent.Lock()
