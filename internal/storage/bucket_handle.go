@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/googlecloudplatform/gcsfuse/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"github.com/jacobsa/gcloud/gcs"
 	"golang.org/x/net/context"
@@ -236,6 +238,7 @@ func getProjectionValue(req gcs.Projection) storage.Projection {
 }
 
 func (b *bucketHandle) ListMinObjects(ctx context.Context, req *gcs.ListObjectsRequest) (listing *gcs.MinObjectListing, err error) {
+	logger.Info("ListMinObjects from bucket_handle.go called!")
 	query := &storage.Query{
 		Delimiter:                req.Delimiter,
 		Prefix:                   req.Prefix,
@@ -248,11 +251,15 @@ func (b *bucketHandle) ListMinObjects(ctx context.Context, req *gcs.ListObjectsR
 		err = fmt.Errorf("Error in fetching attributes: %w", e)
 		return
 	}
+	start_itr :=  time.Now()
 	itr := b.bucket.Objects(ctx, query) // Returning iterator to the list of objects.
+	logger.Infof("TimeTest : TimeGetIterator: %v",time.Since(start_itr))
+
 	pi := itr.PageInfo()
 	pi.MaxSize = req.MaxResults
 	pi.Token = req.ContinuationToken
 	var list gcs.MinObjectListing
+	start_ls := time.Now()
 
 	// Iterating through all the objects in the bucket and one by one adding them to the list.
 	for {
@@ -275,6 +282,7 @@ func (b *bucketHandle) ListMinObjects(ctx context.Context, req *gcs.ListObjectsR
 			list.CollapsedRuns = append(list.CollapsedRuns, attrs.Prefix)
 		} else {
 			// Converting attrs to *Object type.
+            //start := time.Now()
 			currObject := &gcs.MinObject{
 				Name:           attrs.Name,
 				Size:           uint64(attrs.Size),
@@ -283,6 +291,8 @@ func (b *bucketHandle) ListMinObjects(ctx context.Context, req *gcs.ListObjectsR
 				Updated:        attrs.Updated,
 				Metadata:       attrs.Metadata,
 			}
+// 			elapsed := time.Since(start)
+//             total_elapsed_time = total_elapsed_time + elapsed.Nanoseconds()
 			list.Objects = append(list.Objects, currObject)
 		}
 
@@ -297,7 +307,7 @@ func (b *bucketHandle) ListMinObjects(ctx context.Context, req *gcs.ListObjectsR
 			break
 		}
 	}
-
+    logger.Infof("TimeTest : TimeListObjects: %v",time.Since(start_ls))
 	list.ContinuationToken = itr.PageInfo().Token
 	listing = &list
 	return

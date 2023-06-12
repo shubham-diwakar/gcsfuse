@@ -1698,11 +1698,13 @@ func (fs *fileSystem) ReadDir(
 
 	dh.Mu.Lock()
 	defer dh.Mu.Unlock()
-
+    logger.Info("The readdir function was called from fs.go")
 	// Serve the request.
+	start := time.Now()
 	if err := dh.ReadDir(ctx, op); err != nil {
 		return err
 	}
+	logger.Infof("TimeTest : Time taken by the readdir through writing direntries %v",time.Since(start))
 
 	return
 }

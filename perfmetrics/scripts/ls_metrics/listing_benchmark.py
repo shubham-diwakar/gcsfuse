@@ -180,6 +180,9 @@ def _record_time_of_operation(command, path, num_samples) -> list:
     result_list = []
     for _ in range(num_samples):
         start_time_sec = time.time()
+        # '{} {}'.format(command, path)
+        # result = subprocess.run('{} {}'.format(command, path), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        # log.info(result.returncode, result.stdout, result.stderr)
         subprocess.call('{} {}'.format(command, path), shell=True,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.STDOUT)
@@ -375,7 +378,7 @@ def _mount_gcs_bucket(bucket_name) -> str:
     subprocess.call('mkdir {}'.format(gcs_bucket), shell=True)
 
     exit_code = subprocess.call(
-        'gcsfuse --implicit-dirs --enable-storage-client-library --max-conns-per-host 100 {} {}'.format(
+        'go run ./../../../  --implicit-dirs --debug_fuse  --debug_gcs --log-file=./log.log --log-format="text"   {} {}'.format(
             bucket_name, gcs_bucket), shell=True)
     if exit_code != 0:
         log.error('Cannot mount the GCS bucket due to exit code %s.\n', exit_code)
@@ -475,7 +478,7 @@ if __name__ == '__main__':
 
     args = _parse_arguments(argv)
 
-    _check_dependencies(['gsutil', 'gcsfuse'])
+    # _check_dependencies(['gsutil', 'gcsfuse'])
 
     with open(os.path.abspath(args.config_file)) as file:
         config_json = json.load(file)

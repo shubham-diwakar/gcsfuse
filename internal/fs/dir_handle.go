@@ -5,7 +5,7 @@
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
-//
+
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,9 +17,11 @@ package fs
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/fs/inode"
 	"github.com/googlecloudplatform/gcsfuse/internal/locker"
+	"github.com/googlecloudplatform/gcsfuse/internal/logger"
 	"github.com/jacobsa/fuse"
 	"github.com/jacobsa/fuse/fuseops"
 	"github.com/jacobsa/fuse/fuseutil"
@@ -162,7 +164,10 @@ func readAllEntries(
 	ctx context.Context,
 	in inode.DirInode) (entries []fuseutil.Dirent, err error) {
 	// Read one batch at a time.
+
+	logger.Info("readAllEntries from dir_handle.go has been called")
 	var tok string
+	inodeReadEntriestime := time.Now()
 	for {
 		// Read a batch.
 		var batch []fuseutil.Dirent
@@ -181,22 +186,30 @@ func readAllEntries(
 			break
 		}
 	}
+	logger.Infof("TimeTest : TimeInodeReadEntries %v",time.Since(inodeReadEntriestime))
 
 	// Ensure that the entries are sorted, for use in fixConflictingNames
 	// below.
+	sortTime := time.Now()
 	sort.Sort(sortedDirents(entries))
+	logger.Infof("TimeTest : TimeSortEntries %v",time.Since(sortTime))
 
 	// Fix name conflicts.
+	fixconflictTime := time.Now()
 	err = fixConflictingNames(entries)
 	if err != nil {
 		err = fmt.Errorf("fixConflictingNames: %w", err)
 		return
 	}
+	logger.Infof("TimeTest : TimeFixNamingConflict %v",time.Since(fixconflictTime))
+
 
 	// Fix up offset fields.
+	fixoffsetTime := time.Now()
 	for i := 0; i < len(entries); i++ {
 		entries[i].Offset = fuseops.DirOffset(i) + 1
 	}
+	logger.Infof("TimeTest : TimeFixOffsets %v",time.Since(fixoffsetTime))
 
 	// Return a bogus inode ID for each entry, but not the root inode ID.
 	//
@@ -211,9 +224,11 @@ func readAllEntries(
 	// about the birthday problem? And more importantly, what about our
 	// semantic of not minting a new inode ID when the generation changes due
 	// to a local action?
+	bogusinodeidTime := time.Now()
 	for i, _ := range entries {
 		entries[i].Inode = fuseops.RootInodeID + 1
 	}
+	logger.Infof("TimeTest : TimeBogusInodeID %v",time.Since(bogusinodeidTime))
 
 	return
 }
@@ -226,6 +241,7 @@ func (dh *dirHandle) ensureEntries(ctx context.Context) (err error) {
 
 	// Read entries.
 	var entries []fuseutil.Dirent
+	logger.Info("ensureEntries from dir_handle.go called")
 	entries, err = readAllEntries(ctx, dh.in)
 	if err != nil {
 		err = fmt.Errorf("readAllEntries: %w", err)
@@ -256,14 +272,19 @@ func (dh *dirHandle) ReadDir(
 	op *fuseops.ReadDirOp) (err error) {
 	// If the request is for offset zero, we assume that either this is the first
 	// call or rewinddir has been called. Reset state.
+	logger.Info("Readdir from dir_handle.go called here")
 	if op.Offset == 0 {
 		dh.entries = nil
 		dh.entriesValid = false
 	}
 
 	// Do we need to read entries from GCS?
+	var timeForEnsuringEntries int64
 	if !dh.entriesValid {
+	    time_ens_entr := time.Now()
 		err = dh.ensureEntries(ctx)
+		timeForEnsuringEntries = time.Since(time_ens_entr).Nanoseconds()
+		logger.Infof("TimeTest : TimeForEnsuringEntries %v",timeForEnsuringEntries)
 		if err != nil {
 			return
 		}
@@ -278,6 +299,7 @@ func (dh *dirHandle) ReadDir(
 	}
 
 	// We copy out entries until we run out of entries or space.
+
 	for i := index; i < len(dh.entries); i++ {
 		n := fuseutil.WriteDirent(op.Dst[op.BytesRead:], dh.entries[i])
 		if n == 0 {
@@ -286,6 +308,7 @@ func (dh *dirHandle) ReadDir(
 
 		op.BytesRead += n
 	}
+
 
 	return
 }

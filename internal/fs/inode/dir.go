@@ -23,6 +23,7 @@ import (
 
 	"github.com/googlecloudplatform/gcsfuse/internal/gcsx"
 	"github.com/googlecloudplatform/gcsfuse/internal/locker"
+	"github.com/googlecloudplatform/gcsfuse/internal/logger"
 	"github.com/jacobsa/fuse/fuseops"
 	"github.com/jacobsa/fuse/fuseutil"
 	"github.com/jacobsa/gcloud/gcs"
@@ -533,6 +534,8 @@ func (d *dirInode) readObjects(
 	ctx context.Context,
 	tok string) (cores map[Name]*Core, newTok string, err error) {
 	// Ask the bucket to list some objects.
+
+	logger.Info("readObjects from dir.go called ")
 	req := &gcs.ListObjectsRequest{
 		Delimiter:                "/",
 		IncludeTrailingDelimiter: true,
@@ -543,21 +546,25 @@ func (d *dirInode) readObjects(
 		// required.
 		ProjectionVal: gcs.NoAcl,
 	}
-
+    lisminObjecttime := time.Now()
 	listing, err := d.bucket.ListMinObjects(ctx, req)
 	if err != nil {
 		err = fmt.Errorf("ListMinObjects: %w", err)
 		return
 	}
+	logger.Infof("TimeTest : TimeListMinObjectcall %v",time.Since(lisminObjecttime))
+
 
 	cores = make(map[Name]*Core)
 	defer func() {
 		now := d.cacheClock.Now()
+		cacheinsertTime := time.Now()
 		for fullName, c := range cores {
 			d.cache.Insert(now, path.Base(fullName.LocalName()), c.Type())
 		}
+		logger.Infof("Timetest : TimeforCacheInsertion %v",time.Since(cacheinsertTime))
 	}()
-
+    start := time.Now()
 	for _, o := range listing.Objects {
 		// Skip empty results or the directory object backing this inode.
 		if o.Name == d.Name().GcsObjectName() || o.Name == "" {
@@ -587,6 +594,9 @@ func (d *dirInode) readObjects(
 			cores[fileName] = file
 		}
 	}
+	elapsed := time.Since(start)
+
+	logger.Infof("TimeTest : TimeCoreObjects: %v",elapsed)
 
 	// Return an appropriate continuation token, if any.
 	newTok = listing.ContinuationToken
@@ -617,12 +627,13 @@ func (d *dirInode) ReadEntries(
 	ctx context.Context,
 	tok string) (entries []fuseutil.Dirent, newTok string, err error) {
 	var cores map[Name]*Core
+	logger.Info("ReadEntries from dir.go called here")
 	cores, newTok, err = d.readObjects(ctx, tok)
 	if err != nil {
 		err = fmt.Errorf("read objects: %w", err)
 		return
 	}
-
+    convCoreToEntry := time.Now()
 	for fullName, core := range cores {
 		entry := fuseutil.Dirent{
 			Name: path.Base(fullName.LocalName()),
@@ -638,6 +649,8 @@ func (d *dirInode) ReadEntries(
 		}
 		entries = append(entries, entry)
 	}
+	logger.Infof("TimeTest : TimeConvCoretoEntry : %v",time.Since(convCoreToEntry))
+
 	return
 }
 
