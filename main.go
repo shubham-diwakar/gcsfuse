@@ -53,7 +53,7 @@ import (
 // Helpers
 ////////////////////////////////////////////////////////////////////////
 
-func registerSIGINTHandler(mountPoint string) {
+func registerSIGINTHandler(mountPoint string, cancelFunc context.CancelFunc) {
 	// Register for SIGINT.
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
@@ -69,6 +69,7 @@ func registerSIGINTHandler(mountPoint string) {
 			if err != nil {
 				logger.Info("new code is getting executed and recieved error")
 				logger.Infof("Failed to unmount in response to SIGINT: %v", err)
+				cancelFunc()
 				return
 			} else {
 				logger.Infof("Successfully unmounted in response to SIGINT.")
@@ -397,12 +398,12 @@ func runCLIApp(c *cli.Context) (err error) {
 			return
 		}
 	}
-
+	ctx, cancel := context.WithCancel(context.Background())
 	// Let the user unmount with Ctrl-C (SIGINT).
-	registerSIGINTHandler(mfs.Dir())
+	registerSIGINTHandler(mfs.Dir(), cancel)
 
 	// Wait for the file system to be unmounted.
-	err = mfs.Join(context.Background())
+	err = mfs.Join(ctx)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
