@@ -406,6 +406,7 @@ func runCLIApp(c *cli.Context) (err error) {
 	monitor.CloseOpenTelemetryCollectorExporter()
 
 	if err != nil {
+		fmt.Println("Able to do mfs.join")
 		err = fmt.Errorf("MountedFileSystem.Join: %w", err)
 		return
 	}
