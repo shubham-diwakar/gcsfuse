@@ -91,7 +91,10 @@ func Mount(
 	// Serve the connection in the background. When done, set the join status.
 	go func() {
 		server.ServeOps(connection)
+		config.DebugLogger.Println("serving the ops is done")
 		mfs.joinStatus = connection.close()
+		config.DebugLogger.Println("status is available")
+		config.DebugLogger.Println(mfs.joinStatus)
 		close(mfs.joinStatusAvailable)
 	}()
 
