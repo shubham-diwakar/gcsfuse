@@ -64,8 +64,10 @@ func registerSIGINTHandler(mountPoint string) {
 			<-signalChan
 			logger.Info("Received SIGINT, attempting to unmount...")
 
+			logger.Info("new code")
 			err := fuse.Unmount(mountPoint)
 			if err != nil {
+				logger.Info("new code is getting executed and recieved error")
 				logger.Infof("Failed to unmount in response to SIGINT: %v", err)
 				return
 			} else {
@@ -406,7 +408,7 @@ func runCLIApp(c *cli.Context) (err error) {
 	monitor.CloseOpenTelemetryCollectorExporter()
 
 	if err != nil {
-		fmt.Println("Able to do mfs.join")
+		logger.Info("Able to do mfs.join")
 		err = fmt.Errorf("MountedFileSystem.Join: %w", err)
 		return
 	}
