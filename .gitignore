@@ -40,5 +40,3 @@ _testmain.go
 # Editors
 .idea/
 
-# External folders
-vendor/
