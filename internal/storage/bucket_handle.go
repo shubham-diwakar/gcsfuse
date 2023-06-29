@@ -44,8 +44,8 @@ func (bh *bucketHandle) Name() string {
 }
 
 func (bh *bucketHandle) NewReader(
-		ctx context.Context,
-		req *gcs.ReadObjectRequest) (io.ReadCloser, error) {
+	ctx context.Context,
+	req *gcs.ReadObjectRequest) (io.ReadCloser, error) {
 	// Initialising the starting offset and the length to be read by the reader.
 	start := int64(0)
 	length := int64(-1)
@@ -73,7 +73,11 @@ func (b *bucketHandle) DeleteObject(ctx context.Context, req *gcs.DeleteObjectRe
 	obj := b.bucket.Object(req.Name)
 
 	fmt.Println("Generation to delete: ", req.Generation)
-	fmt.Println("Metageneration precondition to delete: ", *req.MetaGenerationPrecondition)
+	if req.MetaGenerationPrecondition != nil {
+		fmt.Println("Metageneration precondition to delete: ", *req.MetaGenerationPrecondition)
+	} else {
+		fmt.Println("Nil meta-generation precondition while delete operation")
+	}
 
 	// Switching to the requested generation of the object. By default, generation
 	// is 0 which signifies the latest generation. Note: GCS will delete the
