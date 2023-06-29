@@ -44,8 +44,8 @@ func (bh *bucketHandle) Name() string {
 }
 
 func (bh *bucketHandle) NewReader(
-	ctx context.Context,
-	req *gcs.ReadObjectRequest) (io.ReadCloser, error) {
+		ctx context.Context,
+		req *gcs.ReadObjectRequest) (io.ReadCloser, error) {
 	// Initialising the starting offset and the length to be read by the reader.
 	start := int64(0)
 	length := int64(-1)
@@ -139,8 +139,17 @@ func (bh *bucketHandle) CreateObject(ctx context.Context, req *gcs.CreateObjectR
 	// Zero means the object does not exist.
 	preconditions := storage.Conditions{}
 
-	fmt.Println("Generation precondition while creating object: ", *req.GenerationPrecondition)
-	fmt.Println("Metageneration precondition while creating object: ", *req.MetaGenerationPrecondition)
+	if req.GenerationPrecondition != nil {
+		fmt.Println("Generation precondition while creating object: ", *req.GenerationPrecondition)
+	} else {
+		fmt.Println("Nil generation precondition while creating object.")
+	}
+
+	if req.MetaGenerationPrecondition != nil {
+		fmt.Println("Metageneration precondition while creating object: ", *req.MetaGenerationPrecondition)
+	} else {
+		fmt.Println("Nil MetaGenerationPrecondition while creating object.")
+	}
 
 	if req.GenerationPrecondition != nil {
 		if *req.GenerationPrecondition == 0 {
@@ -194,8 +203,18 @@ func (bh *bucketHandle) CreateObject(ctx context.Context, req *gcs.CreateObjectR
 func (b *bucketHandle) CopyObject(ctx context.Context, req *gcs.CopyObjectRequest) (o *gcs.Object, err error) {
 
 	fmt.Println("Src generation while copy operation: ", req.SrcGeneration)
-	fmt.Println("Src Metageneration precondition while copy operation: ", *req.SrcMetaGenerationPrecondition)
-	fmt.Println("Dst generation precondition while copy operation: ", *req.DstGenerationPrecondition)
+
+	if req.SrcMetaGenerationPrecondition != nil {
+		fmt.Println("Src Metageneration precondition while copy operation: ", *req.SrcMetaGenerationPrecondition)
+	} else {
+		fmt.Println("Nil Src Metageneration precondition while copy operation.")
+	}
+
+	if req.DstGenerationPrecondition != nil {
+		fmt.Println("Dst generation precondition while copy operation: ", *req.DstGenerationPrecondition)
+	} else {
+		fmt.Println("Nil Dst generation precondition while copy operation.")
+	}
 
 	srcObj := b.bucket.Object(req.SrcName)
 	dstObj := b.bucket.Object(req.DstName)
@@ -309,7 +328,11 @@ func (b *bucketHandle) UpdateObject(ctx context.Context, req *gcs.UpdateObjectRe
 	obj := b.bucket.Object(req.Name)
 
 	fmt.Println("Generation while update operation: ", req.Generation)
-	fmt.Println("Metageneration precondition while update operation: ", *req.MetaGenerationPrecondition)
+	if req.MetaGenerationPrecondition != nil {
+		fmt.Println("Metageneration precondition while update operation: ", *req.MetaGenerationPrecondition)
+	} else {
+		fmt.Println("Nil MetaGenerationPrecondition while update operations.")
+	}
 
 	if req.Generation != 0 {
 		obj = obj.Generation(req.Generation)
@@ -375,8 +398,17 @@ func (b *bucketHandle) UpdateObject(ctx context.Context, req *gcs.UpdateObjectRe
 func (b *bucketHandle) ComposeObjects(ctx context.Context, req *gcs.ComposeObjectsRequest) (o *gcs.Object, err error) {
 	dstObj := b.bucket.Object(req.DstName)
 
-	fmt.Println("Dest generation precondition while compose object: ", *req.DstGenerationPrecondition)
-	fmt.Println("Dest meta-generation precondition while compose object: ", *req.DstMetaGenerationPrecondition)
+	if req.DstGenerationPrecondition != nil {
+		fmt.Println("Dest generation precondition while compose object: ", *req.DstGenerationPrecondition)
+	} else {
+		fmt.Println("Nil Dstgeneration precondition while compose object operatin.")
+	}
+
+	if req.DstMetaGenerationPrecondition != nil {
+		fmt.Println("Dest meta-generation precondition while compose object: ", *req.DstMetaGenerationPrecondition)
+	} else {
+		fmt.Println("Nil Dst meta-generation precondition while compose object operation.")
+	}
 
 	for _, source := range req.Sources {
 		fmt.Println("Generation of sources while compose object: ", source.Generation)
