@@ -17,6 +17,7 @@ package fs
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/fs/inode"
 	"github.com/googlecloudplatform/gcsfuse/internal/locker"
@@ -25,8 +26,6 @@ import (
 	"github.com/jacobsa/fuse/fuseutil"
 	"golang.org/x/net/context"
 )
-
-var ContinuationToken string
 
 // State required for reading from directories.
 type dirHandle struct {
@@ -56,6 +55,21 @@ type dirHandle struct {
 	//
 	// GUARDED_BY(Mu)
 	entriesValid bool
+
+	// Condition variable is for signalling whether a fresh set of entries has been fetched.
+	cond *sync.Cond
+
+	// Error during the fetching goroutine must be communicated using this to the main go routine
+	// serving kernel requests.
+	err error
+
+	// Using this as a identification flag to indicate all entries present in the directory
+	// have been fetched already so that the main goroutine does not wait indefinitely for more entries.
+	fetchOver bool
+
+	// To stop the fetching of entries in case of interrupts to main goroutine like ctrl +c
+	// from the user.
+	cancel context.CancelFunc
 }
 
 // Create a directory handle that obtains listings from the supplied inode.
@@ -70,7 +84,8 @@ func newDirHandle(
 
 	// Set up invariant checking.
 	dh.Mu = locker.New("DH."+in.Name().GcsObjectName(), dh.checkInvariants)
-
+	// Creating a condition variable to indicate events for locking and unlocking dh.Mu mutex.
+	dh.cond = sync.NewCond(dh.Mu)
 	return
 }
 
@@ -156,78 +171,79 @@ func fixConflictingNames(entries []fuseutil.Dirent) (err error) {
 	return
 }
 
-// Read all entries for the directory, fix up conflicting names, and fill in
-// offset fields.
-//
-// LOCKS_REQUIRED(in)
-func readAllEntries(
-	ctx context.Context,
-	in inode.DirInode) (entries []fuseutil.Dirent, err error) {
-	// Read one batch
-	var batch []fuseutil.Dirent
-	batch, ContinuationToken, err = in.ReadEntries(ctx, ContinuationToken)
-	if err != nil {
-		err = fmt.Errorf("ReadEntries: %w", err)
-		return
-	}
-	// Accumulate.
-	entries = append(entries, batch...)
-
-	// Ensure that the entries are sorted, for use in fixConflictingNames
-	// below.
-	// TODO: Fix this after  asynchronous fetch is added.
-	sort.Sort(sortedDirents(entries))
-
-	// Fix name conflicts.
-	err = fixConflictingNames(entries)
-	if err != nil {
-		err = fmt.Errorf("fixConflictingNames: %w", err)
-		return
-	}
-
-	// Return a bogus inode ID for each entry, but not the root inode ID.
-	//
-	// NOTE(jacobsa): As far as I can tell this is harmless. Minting and
-	// returning a real inode ID is difficult because fuse does not count
-	// readdir as an operation that increases the inode ID's lookup count and
-	// we therefore don't get a forget for it later, but we would like to not
-	// have to remember every inode ID that we've ever minted for readdir.
-	//
-	// If it turns out this is not harmless, we'll need to switch to something
-	// like inode IDs based on (object name, generation) hashes. But then what
-	// about the birthday problem? And more importantly, what about our
-	// semantic of not minting a new inode ID when the generation changes due
-	// to a local action?
-	for i, _ := range entries {
-		entries[i].Inode = fuseops.RootInodeID + 1
-	}
-
-	return
+func (dh *dirHandle) setErrorAndBroadcast(err error) {
+	err = fmt.Errorf("ReadEntries: %w", err)
+	dh.Mu.Lock()
+	dh.err = err
+	dh.Mu.Unlock()
+	// Signal the suspended go routine that an error has occurred.
+	dh.cond.Broadcast()
 }
 
-// LOCKS_REQUIRED(dh.Mu)
-// LOCKS_EXCLUDED(dh.in)
-func (dh *dirHandle) ensureEntries(ctx context.Context) (err error) {
-	dh.in.Lock()
-	defer dh.in.Unlock()
+// Fetch Dirent entries from GCSfuse.Will be used as a goroutine which is run asynchronously
+// to fetch data in the background while kernel requests are also served simultaneously.
+func (dh *dirHandle) FetchEntriesAsync(
+	rootInodeId int) {
+	// New context is needed as the parent goroutine exiting earlier than the child will cause the
+	// context to be cancelled prematurely.
+	var ctx context.Context
+	ctx, dh.cancel = context.WithCancel(context.Background())
+	var err error
+	var entryForSorting fuseutil.Dirent
+	// ContinuationToken is also empty in case of firstCall and after all entries have been fetched.
+	// Keeping continuation token local so as to lessen the time for which the mutex is held.
+	// Keep fetching entries in batches of MaxResultsForListObjectsCall.
+	var ContinuationToken string
+	for {
+		var entries []fuseutil.Dirent
+		dh.in.Lock()
+		entries, ContinuationToken, err = dh.in.ReadEntries(ctx, ContinuationToken)
+		dh.in.Unlock()
+		if err != nil {
+			dh.setErrorAndBroadcast(err)
+			break
+		}
+		// Use the last entry from the last fetch for fixing naming conflicts.
+		dh.Mu.Lock()
+		if entryForSorting != (fuseutil.Dirent{}) {
+			entries = append(entries, entryForSorting)
+		}
+		dh.Mu.Unlock()
+		sort.Sort(sortedDirents(entries))
+		err = fixConflictingNames(entries)
 
-	// Read entries.
-	var entries []fuseutil.Dirent
-	entries, err = readAllEntries(ctx, dh.in)
-	if err != nil {
-		err = fmt.Errorf("readAllEntries: %w", err)
-		return
+		if err != nil {
+			dh.setErrorAndBroadcast(err)
+			break
+		}
+
+		// Save the last entry from current fetch to use it for
+		// fixing naming conflicts for next fetch.
+		if ContinuationToken != "" {
+			entryForSorting = entries[len(entries)-1]
+			entries = entries[:len(entries)-1]
+		}
+		dh.Mu.Lock()
+		// Update InodeID and Offset for the entries.
+		for i := range entries {
+			entries[i].Inode = fuseops.InodeID(rootInodeId + 1)
+			entries[i].Offset = fuseops.DirOffset(uint64(len(dh.entries) + i + 1))
+		}
+
+		dh.entries = append(dh.entries, entries...)
+		dh.entriesValid = true
+		dh.Mu.Unlock()
+		// Signal the suspended go routine that the next set of entries has
+		// been fetched.
+		dh.cond.Broadcast()
+		if ContinuationToken == "" {
+			break
+		}
 	}
+	dh.Mu.Lock()
+	dh.fetchOver = true
+	dh.Mu.Unlock()
 
-	// Update state.
-	// Fix up offset fields.
-	for i := 0; i < len(entries); i++ {
-		entries[i].Offset = fuseops.DirOffset(uint64(len(dh.entries) + i + 1))
-	}
-	dh.entries = append(dh.entries, entries...)
-	dh.entriesValid = true
-
-	return
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -247,16 +263,26 @@ func (dh *dirHandle) ReadDir(
 	op *fuseops.ReadDirOp) (err error) {
 	// If the request is for offset zero, we assume that either this is the first
 	// call or rewinddir has been called. Reset state.
+	dh.Mu.Lock()
+	defer dh.Mu.Unlock()
 	if op.Offset == 0 {
 		dh.entries = nil
 		dh.entriesValid = false
+		dh.err = nil
+		dh.fetchOver = false
+	}
+	if !dh.entriesValid {
+		go dh.FetchEntriesAsync(fuseops.RootInodeID)
 	}
 
-	//when the offset is zero(new call made means fetch)
-	//when the offset is non zero and len(dh.entries ) - offset <0 means not enough data to serve the call
-	if !dh.entriesValid || (len(dh.entries) <= int(op.Offset) && op.Offset != 0 && ContinuationToken != "") {
-		err = dh.ensureEntries(ctx)
-		if err != nil {
+	// If the fetched entries is not sufficient to serve the request, then wait only
+	// if there are more entries to be fetched (fetchOver is false).
+	if len(dh.entries) <= int(op.Offset) && !dh.fetchOver {
+		// Internally, cond.Wait() unlocks the mutex and locks it again when woken up
+		// by other go routines through a signal or a broadcast.
+		dh.cond.Wait()
+		if dh.err != nil {
+			err = dh.err
 			return
 		}
 	}
@@ -275,9 +301,7 @@ func (dh *dirHandle) ReadDir(
 		if n == 0 {
 			break
 		}
-
 		op.BytesRead += n
 	}
-
 	return
 }

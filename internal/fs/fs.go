@@ -1696,9 +1696,6 @@ func (fs *fileSystem) ReadDir(
 	dh := fs.handles[op.Handle].(*dirHandle)
 	fs.mu.Unlock()
 
-	dh.Mu.Lock()
-	defer dh.Mu.Unlock()
-
 	// Serve the request.
 	if err := dh.ReadDir(ctx, op); err != nil {
 		return err
@@ -1715,7 +1712,11 @@ func (fs *fileSystem) ReleaseDirHandle(
 	defer fs.mu.Unlock()
 
 	// Sanity check that this handle exists and is of the correct type.
-	_ = fs.handles[op.Handle].(*dirHandle)
+	dh := fs.handles[op.Handle].(*dirHandle)
+	// Cancel context of goroutine which is fetching data.
+	if dh.cancel != nil {
+		dh.cancel()
+	}
 
 	// Clear the entry from the map.
 	delete(fs.handles, op.Handle)
