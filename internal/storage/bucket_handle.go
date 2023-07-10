@@ -35,8 +35,9 @@ import (
 
 type bucketHandle struct {
 	gcs.Bucket
-	bucket     *storage.BucketHandle
-	bucketName string
+	bucket         *storage.BucketHandle
+	bucketName     string
+	ObjectsToCache []*MinObject
 }
 
 func (bh *bucketHandle) Name() string {
@@ -273,6 +274,15 @@ func (b *bucketHandle) ListObjects(ctx context.Context, req *gcs.ListObjectsRequ
 			// Converting attrs to *Object type.
 			currObject := storageutil.ObjectAttrsToBucketObject(attrs)
 			list.Objects = append(list.Objects, currObject)
+			minObject := &MinObject{
+				Name:           currObject.Name,
+				Size:           currObject.Size,
+				Generation:     currObject.Generation,
+				MetaGeneration: currObject.MetaGeneration,
+				Updated:        currObject.Updated,
+				Metadata:       currObject.Metadata,
+			}
+			b.ObjectsToCache = append(b.ObjectsToCache, minObject)
 		}
 
 		// itr.next returns all the objects present in the bucket. Hence adding a

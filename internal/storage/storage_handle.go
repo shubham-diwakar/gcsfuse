@@ -36,10 +36,13 @@ type StorageHandle interface {
 	//
 	// A user-project is required for all operations on Requester Pays buckets.
 	BucketHandle(bucketName string, billingProject string) (bh *bucketHandle)
+
+	GetMetadataObjects() []*MinObject
 }
 
 type storageClient struct {
 	client *storage.Client
+	bh     *bucketHandle
 }
 
 type StorageClientConfig struct {
@@ -125,5 +128,10 @@ func (sh *storageClient) BucketHandle(bucketName string, billingProject string) 
 	}
 
 	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName}
+	sh.bh = bh
 	return
+}
+
+func (sh *storageClient) GetMetadataObjects() []*MinObject {
+	return sh.bh.ObjectsToCache
 }
