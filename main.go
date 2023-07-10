@@ -402,6 +402,7 @@ func runCLIApp(c *cli.Context) (err error) {
 	// Wait for the file system to be unmounted.
 	err = mfs.Join(context.Background())
 
+	logger.Info("Printing the metadata objects length")
 	logger.Info(len(sh.GetMetadataObjects()))
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
