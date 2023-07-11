@@ -21,7 +21,9 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -176,10 +178,10 @@ func createStorageHandle(flags *flagStorage) (storageHandle storage.StorageHandl
 
 // Mount the file system according to arguments in the supplied context.
 func mountWithArgs(
-	bucketName string,
-	mountPoint string,
-	flags *flagStorage,
-	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
+		bucketName string,
+		mountPoint string,
+		flags *flagStorage,
+		mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
 	// Enable invariant checking if requested.
 	if flags.DebugInvariants {
 		locker.EnableInvariantsCheck()
@@ -228,9 +230,9 @@ func mountWithArgs(
 }
 
 func populateArgs(c *cli.Context) (
-	bucketName string,
-	mountPoint string,
-	err error) {
+		bucketName string,
+		mountPoint string,
+		err error) {
 	// Extract arguments.
 	switch len(c.Args()) {
 	case 1:
@@ -404,6 +406,17 @@ func runCLIApp(c *cli.Context) (err error) {
 
 	logger.Info("Printing the metadata objects length")
 	logger.Info(len(sh.GetMetadataObjects()))
+	j, err := json.Marshal(sh.GetMetadataObjects())
+	if err != nil {
+		logger.Info("received error %s", err)
+	}
+
+	metadataAbsolutePath := path.Join("/tmp", "testmetadata.json")
+	err = ioutil.WriteFile(metadataAbsolutePath, j, 0644)
+	if err != nil {
+		err = fmt.Errorf("WriteFile for JSON metadata: %w", err)
+	}
+
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
 
