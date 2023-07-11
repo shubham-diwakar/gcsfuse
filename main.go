@@ -178,10 +178,10 @@ func createStorageHandle(flags *flagStorage) (storageHandle storage.StorageHandl
 
 // Mount the file system according to arguments in the supplied context.
 func mountWithArgs(
-	bucketName string,
-	mountPoint string,
-	flags *flagStorage,
-	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
+		bucketName string,
+		mountPoint string,
+		flags *flagStorage,
+		mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
 	// Enable invariant checking if requested.
 	if flags.DebugInvariants {
 		locker.EnableInvariantsCheck()
@@ -230,9 +230,9 @@ func mountWithArgs(
 }
 
 func populateArgs(c *cli.Context) (
-	bucketName string,
-	mountPoint string,
-	err error) {
+		bucketName string,
+		mountPoint string,
+		err error) {
 	// Extract arguments.
 	switch len(c.Args()) {
 	case 1:
@@ -419,7 +419,27 @@ func runCLIApp(c *cli.Context) (err error) {
 	}
 
 	elapsed := time.Since(start)
-	logger.Info("Binomial took %s", elapsed)
+	logger.Info("WRite took %s", elapsed)
+
+	startAgain := time.Now()
+	var metadata []*storage.MinObject
+	contents, err := ioutil.ReadFile(metadataAbsolutePath)
+	if err != nil {
+		logger.Infof("Skip metadata file due to read error: %s", err)
+		return
+	}
+
+	err = json.Unmarshal(contents, &metadata)
+	if err != nil {
+		logger.Infof("Skip metadata file due to file corruption: %s", err)
+		return
+	}
+
+	logger.Info("Printing the metadata objects length from json")
+	logger.Info(len(metadata))
+
+	elapsedAgain := time.Since(startAgain)
+	logger.Info("Reading took %s", elapsedAgain)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
