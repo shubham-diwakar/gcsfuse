@@ -406,6 +406,7 @@ func runCLIApp(c *cli.Context) (err error) {
 
 	logger.Info("Printing the metadata objects length")
 	logger.Info(len(sh.GetMetadataObjects()))
+	start := time.Now()
 	j, err := json.MarshalIndent(sh.GetMetadataObjects(), "", " ")
 	if err != nil {
 		logger.Info("received error %s", err)
@@ -416,6 +417,9 @@ func runCLIApp(c *cli.Context) (err error) {
 	if err != nil {
 		err = fmt.Errorf("WriteFile for JSON metadata: %w", err)
 	}
+
+	elapsed := time.Since(start)
+	logger.Info("Binomial took %s", elapsed)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
