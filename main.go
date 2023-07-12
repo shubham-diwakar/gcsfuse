@@ -178,10 +178,10 @@ func createStorageHandle(flags *flagStorage) (storageHandle storage.StorageHandl
 
 // Mount the file system according to arguments in the supplied context.
 func mountWithArgs(
-		bucketName string,
-		mountPoint string,
-		flags *flagStorage,
-		mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
+	bucketName string,
+	mountPoint string,
+	flags *flagStorage,
+	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
 	// Enable invariant checking if requested.
 	if flags.DebugInvariants {
 		locker.EnableInvariantsCheck()
@@ -230,9 +230,9 @@ func mountWithArgs(
 }
 
 func populateArgs(c *cli.Context) (
-		bucketName string,
-		mountPoint string,
-		err error) {
+	bucketName string,
+	mountPoint string,
+	err error) {
 	// Extract arguments.
 	switch len(c.Args()) {
 	case 1:
@@ -406,7 +406,7 @@ func runCLIApp(c *cli.Context) (err error) {
 
 	logger.Info("Printing the metadata objects length")
 
-	mid := len(sh.GetMetadataObjects()) / 2
+	mid := 10000
 
 	left := sh.GetMetadataObjects()[:mid]
 	logger.Info(len(left))
