@@ -406,7 +406,7 @@ func runCLIApp(c *cli.Context) (err error) {
 
 	logger.Info("Printing the metadata objects length")
 
-	mid := 100000
+	mid := 500000
 
 	left := sh.GetMetadataObjects()[:mid]
 	logger.Info(len(left))
@@ -416,7 +416,7 @@ func runCLIApp(c *cli.Context) (err error) {
 		logger.Info("received error %s", err)
 	}
 
-	metadataAbsolutePath := path.Join("/tmp", "testmetadata100.json")
+	metadataAbsolutePath := path.Join("/tmp", "testmetadata500.json")
 	err = ioutil.WriteFile(metadataAbsolutePath, j, 0644)
 	if err != nil {
 		err = fmt.Errorf("WriteFile for JSON metadata: %w", err)
