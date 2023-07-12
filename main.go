@@ -405,14 +405,18 @@ func runCLIApp(c *cli.Context) (err error) {
 	err = mfs.Join(context.Background())
 
 	logger.Info("Printing the metadata objects length")
-	logger.Info(len(sh.GetMetadataObjects()))
+
+	mid := len(sh.GetMetadataObjects()) / 2
+
+	left := sh.GetMetadataObjects()[:mid]
+	logger.Info(len(left))
 	start := time.Now()
-	j, err := json.MarshalIndent(sh.GetMetadataObjects(), "", " ")
+	j, err := json.MarshalIndent(left, "", " ")
 	if err != nil {
 		logger.Info("received error %s", err)
 	}
 
-	metadataAbsolutePath := path.Join("/tmp", "testmetadata.json")
+	metadataAbsolutePath := path.Join("/tmp", "testmetadata50.json")
 	err = ioutil.WriteFile(metadataAbsolutePath, j, 0644)
 	if err != nil {
 		err = fmt.Errorf("WriteFile for JSON metadata: %w", err)
