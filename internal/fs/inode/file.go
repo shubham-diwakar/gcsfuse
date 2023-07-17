@@ -81,6 +81,8 @@ type FileInode struct {
 	//
 	// GUARDED_BY(mu)
 	destroyed bool
+
+	localFile bool
 }
 
 var _ Inode = &FileInode{}
@@ -272,6 +274,14 @@ func (f *FileInode) Name() Name {
 	return f.name
 }
 
+func (f *FileInode) IsLocalFile() bool {
+	return f.localFile
+}
+
+func (f *FileInode) SetLocalFile(val bool) {
+	f.localFile = val
+}
+
 // Source returns a record for the GCS object from which this inode is branched. The
 // record is guaranteed not to be modified, and users must not modify it.
 //
@@ -329,29 +339,32 @@ func (f *FileInode) Attributes(
 	ctx context.Context) (attrs fuseops.InodeAttributes, err error) {
 	attrs = f.attrs
 
-	// Obtain default information from the source object.
-	attrs.Mtime = f.src.Updated
-	attrs.Size = uint64(f.src.Size)
+	if !f.IsLocalFile() {
+		// Obtain default information from the source object.
+		attrs.Mtime = f.src.Updated
+		attrs.Size = uint64(f.src.Size)
 
-	// We require only that atime and ctime be "reasonable".
-	attrs.Atime = attrs.Mtime
-	attrs.Ctime = attrs.Mtime
+		// We require only that atime and ctime be "reasonable".
+		// TODO: check how to pouplate Atime and mtime.
+		attrs.Atime = attrs.Mtime
+		attrs.Ctime = attrs.Mtime
 
-	// If the source object has an mtime metadata key, use that instead of its
-	// update time.
-	// If the file was copied via gsutil, we'll have goog-reserved-file-mtime
-	if strTimestamp, ok := f.src.Metadata["goog-reserved-file-mtime"]; ok {
-		if timestamp, err := strconv.ParseInt(strTimestamp, 0, 64); err == nil {
-			attrs.Mtime = time.Unix(timestamp, 0)
+		// If the source object has an mtime metadata key, use that instead of its
+		// update time.
+		// If the file was copied via gsutil, we'll have goog-reserved-file-mtime
+		if strTimestamp, ok := f.src.Metadata["goog-reserved-file-mtime"]; ok {
+			if timestamp, err := strconv.ParseInt(strTimestamp, 0, 64); err == nil {
+				attrs.Mtime = time.Unix(timestamp, 0)
+			}
 		}
-	}
 
-	// Otherwise, if its been synced with gcsfuse before, we'll have gcsfuse_mtime
-	if formatted, ok := f.src.Metadata["gcsfuse_mtime"]; ok {
-		attrs.Mtime, err = time.Parse(time.RFC3339Nano, formatted)
-		if err != nil {
-			err = fmt.Errorf("time.Parse(%q): %w", formatted, err)
-			return
+		// Otherwise, if its been synced with gcsfuse before, we'll have gcsfuse_mtime
+		if formatted, ok := f.src.Metadata["gcsfuse_mtime"]; ok {
+			attrs.Mtime, err = time.Parse(time.RFC3339Nano, formatted)
+			if err != nil {
+				err = fmt.Errorf("time.Parse(%q): %w", formatted, err)
+				return
+			}
 		}
 	}
 
@@ -372,10 +385,13 @@ func (f *FileInode) Attributes(
 
 	// If the object has been clobbered, we reflect that as the inode being
 	// unlinked.
-	_, clobbered, err := f.clobbered(ctx, false)
-	if err != nil {
-		err = fmt.Errorf("clobbered: %w", err)
-		return
+	clobbered := false
+	if !f.IsLocalFile() {
+		_, clobbered, err = f.clobbered(ctx, false)
+		if err != nil {
+			err = fmt.Errorf("clobbered: %w", err)
+			return
+		}
 	}
 
 	if !clobbered {
@@ -463,7 +479,7 @@ func (f *FileInode) SetMtime(
 	// data modifications so this doesn't seem so bad. It's worth saving the
 	// round trip to GCS for the common case of Linux writeback caching, where we
 	// always receive a setattr request just before a flush of a dirty file.
-	if sr.Mtime != nil {
+	if sr.Mtime != nil || f.IsLocalFile() {
 		f.content.SetMtime(mtime)
 		return
 	}
@@ -530,12 +546,16 @@ func (f *FileInode) Sync(ctx context.Context) (err error) {
 	// properties and using that when object is synced below. StatObject by
 	// default sets the projection to full, which fetches all the object
 	// properties.
-	latestGcsObj, isClobbered, err := f.clobbered(ctx, true)
+	var latestGcsObj *gcs.Object
+	var isClobbered bool
+	if !f.IsLocalFile() {
+		latestGcsObj, isClobbered, err = f.clobbered(ctx, true)
 
-	// Clobbered is treated as being unlinked. There's no reason to return an
-	// error in that case. We simply return without syncing the object.
-	if err != nil || isClobbered {
-		return
+		// Clobbered is treated as being unlinked. There's no reason to return an
+		// error in that case. We simply return without syncing the object.
+		if err != nil || isClobbered {
+			return
+		}
 	}
 
 	// Write out the contents if they are dirty.

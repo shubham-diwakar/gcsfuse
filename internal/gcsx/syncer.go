@@ -38,9 +38,9 @@ type Syncer interface {
 	// *   Otherwise, write out a new generation in the bucket (failing with
 	//     *gcs.PreconditionError if the source generation is no longer current).
 	SyncObject(
-		ctx context.Context,
-		srcObject *gcs.Object,
-		content TempFile) (o *gcs.Object, err error)
+			ctx context.Context,
+			srcObject *gcs.Object,
+			content TempFile) (o *gcs.Object, err error)
 }
 
 // NewSyncer creates a syncer that syncs into the supplied bucket.
@@ -53,9 +53,9 @@ type Syncer interface {
 // to delete them, but if we are interrupted for some reason we may not be able
 // to do so. Therefore the user should arrange for garbage collection.
 func NewSyncer(
-	appendThreshold int64,
-	tmpObjectPrefix string,
-	bucket gcs.Bucket) (os Syncer) {
+		appendThreshold int64,
+		tmpObjectPrefix string,
+		bucket gcs.Bucket) (os Syncer) {
 	// Create the object creators.
 	fullCreator := &fullObjectCreator{
 		bucket: bucket,
@@ -80,14 +80,14 @@ type fullObjectCreator struct {
 }
 
 func (oc *fullObjectCreator) Create(
-	ctx context.Context,
-	srcObject *gcs.Object,
-	mtime time.Time,
-	r io.Reader) (o *gcs.Object, err error) {
-	MetadataMap:= make(map[string]string)
+		ctx context.Context,
+		srcObject *gcs.Object,
+		mtime time.Time,
+		r io.Reader) (o *gcs.Object, err error) {
+	MetadataMap := make(map[string]string)
 
 	/* Copy Metadata fields from existing object to retain them for new object. */
-	for key, value  := range srcObject.Metadata{
+	for key, value := range srcObject.Metadata {
 		MetadataMap[key] = value
 	}
 
@@ -124,10 +124,10 @@ func (oc *fullObjectCreator) Create(
 // An implementation detail of syncer. See notes on newSyncer.
 type objectCreator interface {
 	Create(
-		ctx context.Context,
-		srcObject *gcs.Object,
-		mtime time.Time,
-		r io.Reader) (o *gcs.Object, err error)
+			ctx context.Context,
+			srcObject *gcs.Object,
+			mtime time.Time,
+			r io.Reader) (o *gcs.Object, err error)
 }
 
 // Create a syncer that stats the mutable content to see if it's dirty before
@@ -144,9 +144,9 @@ type objectCreator interface {
 // the order of the bandwidth to GCS times three times the round trip latency
 // to GCS (for a small create, a compose, and a delete).
 func newSyncer(
-	appendThreshold int64,
-	fullCreator objectCreator,
-	appendCreator objectCreator) (os Syncer) {
+		appendThreshold int64,
+		fullCreator objectCreator,
+		appendCreator objectCreator) (os Syncer) {
 	os = &syncer{
 		appendThreshold: appendThreshold,
 		fullCreator:     fullCreator,
@@ -163,15 +163,27 @@ type syncer struct {
 }
 
 func (os *syncer) SyncObject(
-	ctx context.Context,
-	srcObject *gcs.Object,
-	content TempFile) (o *gcs.Object, err error) {
+		ctx context.Context,
+		srcObject *gcs.Object,
+		content TempFile) (o *gcs.Object, err error) {
 	// Stat the content.
 	sr, err := content.Stat()
 	if err != nil {
 		err = fmt.Errorf("Stat: %w", err)
 		return
 	}
+
+	// Sanity check: the branch above should ensure that by the time we get here,
+	// the stat result's mtime is non-nil.
+	if sr.Mtime == nil {
+		err = fmt.Errorf("Wacky stat result: %#v", sr)
+		return
+	}
+
+	// Canonicalize to UTC.
+	mtime := sr.Mtime.UTC()
+
+	o, err = os.appendCreator.Create(ctx, srcObject, mtime, content)
 
 	// Make sure the dirty threshold makes sense.
 	srcSize := int64(srcObject.Size)
@@ -191,22 +203,12 @@ func (os *syncer) SyncObject(
 		return
 	}
 
-	// Sanity check: the branch above should ensure that by the time we get here,
-	// the stat result's mtime is non-nil.
-	if sr.Mtime == nil {
-		err = fmt.Errorf("Wacky stat result: %#v", sr)
-		return
-	}
-
-	// Canonicalize to UTC.
-	mtime := sr.Mtime.UTC()
-
 	// Otherwise, we need to create a new generation. If the source object is
 	// long enough, hasn't been dirtied, and has a low enough component count,
 	// then we can make the optimization of not rewriting its contents.
 	if srcSize >= os.appendThreshold &&
-		sr.DirtyThreshold == srcSize &&
-		srcObject.ComponentCount < gcs.MaxComponentCount {
+			sr.DirtyThreshold == srcSize &&
+			srcObject.ComponentCount < gcs.MaxComponentCount {
 		_, err = content.Seek(srcSize, 0)
 		if err != nil {
 			err = fmt.Errorf("Seek: %w", err)
@@ -230,5 +232,36 @@ func (os *syncer) SyncObject(
 		return
 	}
 
+	return
+}
+
+func (os *syncer) SyncObject(
+		ctx context.Context,
+		content TempFile) (o *gcs.Object, err error) {
+	// Stat the content.
+	sr, err := content.Stat()
+	if err != nil {
+		err = fmt.Errorf("Stat: %w", err)
+		return
+	}
+
+	// Sanity check: the branch above should ensure that by the time we get here,
+	// the stat result's mtime is non-nil.
+	if sr.Mtime == nil {
+		err = fmt.Errorf("Wacky stat result: %#v", sr)
+		return
+	}
+
+	// Canonicalize to UTC.
+	mtime := sr.Mtime.UTC()
+
+	_, err = content.Seek(0, 0)
+	if err != nil {
+		err = fmt.Errorf("Seek: %w", err)
+		return
+	}
+
+	// Call CreateObject method directly
+	o, err = os.fullCreator.Create(ctx, nil, mtime, content)
 	return
 }
