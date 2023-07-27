@@ -2,6 +2,8 @@
 # Running test only for when PR contains execute-perf-test label
 # It will take approx 80 minutes to run the script.
 set -e
+echo gcloud version
+gcloud version
 sudo apt-get update
 echo Installing git
 sudo apt-get install git
@@ -10,8 +12,6 @@ sudo apt-get -y install python3-pip
 echo Installing libraries to run python script
 pip install google-cloud
 pip install google-cloud-vision
-echo gcloud version
-gcloud version
 pip install google-api-python-client
 pip install prettytable
 echo Installing go-lang  1.20.5
