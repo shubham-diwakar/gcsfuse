@@ -22,6 +22,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/googlecloudplatform/gcsfuse/internal/gorocksdb"
 	mountpkg "github.com/googlecloudplatform/gcsfuse/internal/mount"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
 	"golang.org/x/net/context"
@@ -40,6 +41,7 @@ type StorageHandle interface {
 
 type storageClient struct {
 	client *storage.Client
+	db     *gorocksdb.DB
 }
 
 type StorageClientConfig struct {
@@ -113,7 +115,36 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		storage.WithPolicy(storage.RetryAlways),
 		storage.WithErrorFunc(storageutil.ShouldRetry))
 
-	sh = &storageClient{client: sc}
+	options := gorocksdb.NewDefaultOptions()
+	options.SetCreateIfMissing(true)
+	options.SetUseFsync(true)
+	db, err := gorocksdb.OpenDb(options, "/tmp/testdb")
+	if err != nil {
+		fmt.Println("error in initializing rocksdb")
+		fmt.Println(err)
+	}
+
+	writeOptions := gorocksdb.NewDefaultWriteOptions()
+	key := "testkey"
+	value := "testvalue"
+	err = db.Put(writeOptions, []byte(key), []byte(value))
+	if err != nil {
+		fmt.Println("error in initializing rocksdb")
+		fmt.Println(err)
+	}
+
+	readOptions := gorocksdb.NewDefaultReadOptions()
+
+	slice, err := db.Get(readOptions, []byte(key))
+	if err != nil && value == string(slice.Data()) {
+		fmt.Println("value matched")
+	} else {
+		fmt.Println("value didnt match")
+		fmt.Println(string(slice.Data()))
+		fmt.Print(err)
+	}
+
+	sh = &storageClient{client: sc, db: db}
 	return
 }
 
