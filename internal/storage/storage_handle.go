@@ -224,7 +224,6 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	ro := gorocksdb.NewDefaultReadOptions()
 	ro.SetFillCache(false)
 
-	td := tdigest.New()
 	var mean float64
 	notfound := 0
 
@@ -232,7 +231,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	for i := 0; i < 10; i++ {
 
 		b.Add(func(ctx context.Context) (err error) {
-
+			td := tdigest.New()
 			//	sub_slice := names[i*10000 : (i+1)*10000]
 			sub_slice := names[i*10000 : (i+1)*10000]
 			var key string
@@ -262,6 +261,12 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 				}
 			}
 
+			fmt.Printf("Mean %.5f\n", mean/float64(length))
+			fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
+			fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
+			fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
+			fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
+			fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
 			return
 		})
 	}
@@ -272,12 +277,6 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	fmt.Println("not found %d", notfound)
 
-	fmt.Printf("Mean %.5f\n", mean/float64(length))
-	fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
-	fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
-	fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
-	fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
-	fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
 	return
 
 }
@@ -295,8 +294,10 @@ func (sh *storageClient) WriteToDb(items []*MinObject) (err error) {
 
 		if i == 1 {
 			fmt.Println(sh.bh.bucketName + ele.Name)
-			i++
+
 		}
+
+		i++
 
 		err = sh.db.Put(writeOptions, []byte(sh.bh.bucketName+ele.Name), j)
 
