@@ -208,8 +208,12 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	index := 0
 	for _, ele := range items {
 		names[index] = sh.bh.bucketName + ele.Name
-		index++
 
+		if index == 0 {
+			fmt.Println(names[index])
+		}
+
+		index++
 		if index == length {
 			break
 		}

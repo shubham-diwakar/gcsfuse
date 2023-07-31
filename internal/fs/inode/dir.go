@@ -463,11 +463,15 @@ func (d *dirInode) LookUpChild(ctx context.Context, name string) (*Core, error) 
 	case NonexistentType:
 		return nil, nil
 	case UnknownType:
-		b.Add(lookUpFile)
-		if d.implicitDirs {
-			b.Add(lookUpImplicitOrExplicitDir)
+		if strings.Contains(name, ".txt") {
+			b.Add(lookUpFile)
 		} else {
-			b.Add(lookUpExplicitDir)
+			b.Add(lookUpFile)
+			if d.implicitDirs {
+				b.Add(lookUpImplicitOrExplicitDir)
+			} else {
+				b.Add(lookUpExplicitDir)
+			}
 		}
 	}
 
