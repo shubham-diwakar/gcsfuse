@@ -223,12 +223,11 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	var mean float64
 	notfound := 0
 
-	td := tdigest.New()
 	b := syncutil.NewBundle(ctx)
 	for i := 0; i < 10; i++ {
 
 		b.Add(func(ctx context.Context) (err error) {
-
+			td := tdigest.New()
 			found := 0
 			//	sub_slice := names[i*10000 : (i+1)*10000]
 			sub_slice := names[i*10000 : (i+1)*10000]
@@ -265,7 +264,12 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 			}
 
 			fmt.Printf("Found %d\n", found)
-
+			fmt.Printf("Mean %.5f\n", mean/float64(10000))
+			fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
+			fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
+			fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
+			fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
+			fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
 			return
 		})
 	}
@@ -275,12 +279,6 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	}
 
 	fmt.Println("not found %d", notfound)
-	fmt.Printf("Mean %.5f\n", mean/float64(length))
-	fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
-	fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
-	fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
-	fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
-	fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
 
 	return
 
