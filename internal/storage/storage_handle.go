@@ -222,6 +222,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	td := tdigest.New()
 	var mean float64
+	notfound := 0
 
 	b := syncutil.NewBundle(ctx)
 	for i := 0; i < 10; i++ {
@@ -241,15 +242,16 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 				}
 
 				elapsed := time.Since(start)
-				fmt.Println(elapsed)
+				//fmt.Println(elapsed)
 				microseconds := float64(elapsed) / float64(time.Microsecond)
 				//	fmt.Println(microseconds)
 				td.Add(microseconds, 1)
 				mean += microseconds
 
-				if len(output.Data()) == 0 {
+				if output.Size() == 0 {
 					fmt.Println("key not found")
 					fmt.Println(key)
+					notfound++
 					//err = fmt.Errorf("key not found %s", key)
 				} else {
 					output.Free()
@@ -264,7 +266,9 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 		return
 	}
 
-	fmt.Printf("Mean %d", mean/float64(length))
+	fmt.Println("not found %d", notfound)
+
+	fmt.Printf("Mean %.5f\n", mean/float64(length))
 	fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
 	fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
 	fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
