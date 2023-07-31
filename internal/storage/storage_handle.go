@@ -214,11 +214,13 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 		}
 
 		index++
-		if index == length {
+		if index >= length {
 			break
 		}
 	}
 
+	fmt.Println("added till indx")
+	fmt.Println(index)
 	rand.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
 
 	ro := gorocksdb.NewDefaultReadOptions()
@@ -226,6 +228,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	var mean float64
 	notfound := 0
+	found := 0
 
 	b := syncutil.NewBundle(ctx)
 	for i := 0; i < 10; i++ {
@@ -236,6 +239,12 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 			sub_slice := names[i*10000 : (i+1)*10000]
 			var key string
 			for _, key = range sub_slice {
+				if key == "" {
+					continue
+				}
+
+				found++
+
 				start := time.Now()
 
 				output, err1 := sh.db.Get(ro, []byte(key))
@@ -261,6 +270,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 				}
 			}
 
+			fmt.Printf("Found %d\n", found)
 			fmt.Printf("Mean %.5f\n", mean/float64(length))
 			fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
 			fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
