@@ -209,40 +209,26 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	for _, ele := range items {
 		names[index] = sh.bh.bucketName + ele.Name
 
-		if index < 10 {
-			fmt.Println(names[index])
-		}
-
 		index++
 		if index >= length {
 			break
 		}
 	}
 
-	fmt.Println("added till indx")
-	fmt.Println(index)
-	for i := 0; i < 10; i++ {
-		fmt.Println(names[i])
-	}
-
 	rand.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
 
-	fmt.Println("after shuffle")
-	for i := 0; i < 10; i++ {
-		fmt.Println(names[i])
-	}
 	ro := gorocksdb.NewDefaultReadOptions()
 	ro.SetFillCache(false)
 
 	var mean float64
 	notfound := 0
-	found := 0
 
 	b := syncutil.NewBundle(ctx)
 	for i := 0; i < 10; i++ {
 
 		b.Add(func(ctx context.Context) (err error) {
 			td := tdigest.New()
+			found := 0
 			//	sub_slice := names[i*10000 : (i+1)*10000]
 			sub_slice := names[i*10000 : (i+1)*10000]
 			for j := 0; j < 10000; j++ {

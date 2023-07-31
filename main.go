@@ -404,7 +404,7 @@ func runCLIApp(c *cli.Context) (err error) {
 	err = mfs.Join(context.Background())
 
 	items := sh.GetMetadataObjects()
-	//err = sh.WriteToDb(items)
+	err = sh.WriteToDb(items)
 
 	err = sh.ReadData(context.Background(), items)
 
