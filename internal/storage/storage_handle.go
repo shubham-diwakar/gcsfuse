@@ -237,9 +237,8 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 			td := tdigest.New()
 			//	sub_slice := names[i*10000 : (i+1)*10000]
 			sub_slice := names[i*10000 : (i+1)*10000]
-			var key string
-			for _, key = range sub_slice {
-				if key == "" {
+			for j := 0; j < 10000; j++ {
+				if sub_slice[j] == "" {
 					continue
 				}
 
@@ -247,7 +246,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 				start := time.Now()
 
-				output, err1 := sh.db.Get(ro, []byte(key))
+				output, err1 := sh.db.Get(ro, []byte(sub_slice[j]))
 				if err1 != nil {
 					err = err1
 					return
