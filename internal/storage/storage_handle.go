@@ -143,7 +143,8 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		fmt.Println(err)
 	}
 
-	/*ro := gorocksdb.NewDefaultReadOptions()
+	start := time.Now()
+	ro := gorocksdb.NewDefaultReadOptions()
 	ro.SetFillCache(false)
 	it := db.NewIterator(ro)
 	defer it.Close()
@@ -160,7 +161,10 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		value.Free()
 	}
 
-	fmt.Println(i)*/
+	fmt.Println(i)
+	elapsed := time.Since(start)
+	fmt.Println("Total time to read")
+	fmt.Println(elapsed)
 
 	/*	writeOptions := gorocksdb.NewDefaultWriteOptions()
 		key := "testkey"

@@ -406,7 +406,7 @@ func runCLIApp(c *cli.Context) (err error) {
 	items := sh.GetMetadataObjects()
 	err = sh.WriteToDb(items)
 
-	err = sh.ReadData(context.Background(), items)
+	//err = sh.ReadData(context.Background(), items)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
