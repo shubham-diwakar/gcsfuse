@@ -432,6 +432,8 @@ func runCLIApp(c *cli.Context) (err error) {
 		logger.Infof("Skip metadata file due to read error: %s", err)
 		return
 	}
+	elaspsedFileRead := time.Since(startAgain)
+	logger.Info("Reading file %s", elaspsedFileRead)
 
 	err = json.Unmarshal(contents, &metadata)
 	if err != nil {
