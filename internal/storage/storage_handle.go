@@ -224,7 +224,7 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 	var mean float64
 
 	b := syncutil.NewBundle(ctx)
-	for i := 0; i < length; i++ {
+	for i := 0; i < 10; i++ {
 
 		b.Add(func(ctx context.Context) (err error) {
 
