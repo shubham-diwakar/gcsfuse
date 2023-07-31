@@ -416,7 +416,7 @@ func runCLIApp(c *cli.Context) (err error) {
 		logger.Info("received error %s", err)
 	}
 
-	metadataAbsolutePath := path.Join("/tmp", "testmetadata1m.json")
+	metadataAbsolutePath := path.Join("/mnt/disks/local_ssd_0", "testmetadata1m.json")
 	err = ioutil.WriteFile(metadataAbsolutePath, j, 0644)
 	if err != nil {
 		err = fmt.Errorf("WriteFile for JSON metadata: %w", err)
