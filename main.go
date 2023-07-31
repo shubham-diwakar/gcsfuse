@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -179,7 +180,7 @@ func mountWithArgs(
 	bucketName string,
 	mountPoint string,
 	flags *flagStorage,
-	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error) {
+	mountStatus *log.Logger) (mfs *fuse.MountedFileSystem, err error, storageHandle storage.StorageHandle) {
 	// Enable invariant checking if requested.
 	if flags.DebugInvariants {
 		locker.EnableInvariantsCheck()
@@ -193,7 +194,7 @@ func mountWithArgs(
 	// Special case: if we're mounting the fake bucket, we don't need an actual
 	// connection.
 	var conn *gcsx.Connection
-	var storageHandle storage.StorageHandle
+	//	var storageHandle storage.StorageHandle
 	if bucketName != canned.FakeBucketName {
 		mountStatus.Println("Opening GCS connection...")
 
@@ -377,9 +378,10 @@ func runCLIApp(c *cli.Context) (err error) {
 	// Mount, writing information about our progress to the writer that package
 	// daemonize gives us and telling it about the outcome.
 	var mfs *fuse.MountedFileSystem
+	var sh storage.StorageHandle
 	{
 		mountStatus := logger.NewInfo("")
-		mfs, err = mountWithArgs(bucketName, mountPoint, flags, mountStatus)
+		mfs, err, sh = mountWithArgs(bucketName, mountPoint, flags, mountStatus)
 
 		if err == nil {
 			mountStatus.Println("File system has been successfully mounted.")
@@ -400,6 +402,11 @@ func runCLIApp(c *cli.Context) (err error) {
 
 	// Wait for the file system to be unmounted.
 	err = mfs.Join(context.Background())
+
+	items := sh.GetMetadataObjects()
+	err = sh.WriteToDb(items)
+
+	err = sh.ReadData(context.Background(), items)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
@@ -436,6 +443,7 @@ func handlePanicWhileMounting() {
 	// Detect if panic happens in main go routine.
 	a := recover()
 	if a != nil {
+		fmt.Println(string(debug.Stack()))
 		logger.Fatal("Panic: ", a)
 	}
 }

@@ -748,26 +748,26 @@ func (opts *Options) SetKeepLogFileNum(value int) {
 // CONSTRAINT: soft_rate_limit <= hard_rate_limit. If this constraint does not
 // hold, RocksDB will set soft_rate_limit = hard_rate_limit
 // Default: 0.0 (disabled)
-/*func (opts *Options) SetSoftRateLimit(value float64) {
+func (opts *Options) SetSoftRateLimit(value float64) {
 	C.rocksdb_options_set_soft_rate_limit(opts.c, C.double(value))
 }
-*/
+
 // SetHardRateLimit sets the hard rate limit.
 //
 // Puts are delayed 1ms at a time when any level has a compaction score that
 // exceeds hard_rate_limit. This is ignored when <= 1.0.
 // Default: 0.0 (disabled)
-/*func (opts *Options) SetHardRateLimit(value float64) {
+func (opts *Options) SetHardRateLimit(value float64) {
 	C.rocksdb_options_set_hard_rate_limit(opts.c, C.double(value))
-}*/
+}
 
 // SetRateLimitDelayMaxMilliseconds sets the max time
 // a put will be stalled when hard_rate_limit is enforced.
 // If 0, then there is no limit.
 // Default: 1000
-/*func (opts *Options) SetRateLimitDelayMaxMilliseconds(value uint) {
+func (opts *Options) SetRateLimitDelayMaxMilliseconds(value uint) {
 	C.rocksdb_options_set_rate_limit_delay_max_milliseconds(opts.c, C.uint(value))
-}*/
+}
 
 // SetMaxManifestFileSize sets the maximal manifest file size until is rolled over.
 // The older manifest file be deleted.

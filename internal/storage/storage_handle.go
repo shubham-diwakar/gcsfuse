@@ -16,15 +16,20 @@ package storage
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googlecloudplatform/gcsfuse/internal/gorocksdb"
+	"github.com/googlecloudplatform/gcsfuse/internal/logger"
 	mountpkg "github.com/googlecloudplatform/gcsfuse/internal/mount"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/storageutil"
+	"github.com/jacobsa/syncutil"
+	"github.com/spenczar/tdigest"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
@@ -37,11 +42,16 @@ type StorageHandle interface {
 	//
 	// A user-project is required for all operations on Requester Pays buckets.
 	BucketHandle(bucketName string, billingProject string) (bh *bucketHandle)
+
+	GetMetadataObjects() []*MinObject
+	WriteToDb(items []*MinObject) (err error)
+	ReadData(ctx context.Context, items []*MinObject) (err error)
 }
 
 type storageClient struct {
 	client *storage.Client
 	db     *gorocksdb.DB
+	bh     *bucketHandle
 }
 
 type StorageClientConfig struct {
@@ -118,7 +128,7 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 	options := gorocksdb.NewDefaultOptions()
 	options.SetCreateIfMissing(true)
 	options.SetUseFsync(true)
-	db, err := gorocksdb.OpenDb(options, "/tmp/testdb")
+	db, err := gorocksdb.OpenDb(options, "//mnt/disks/local_ssd_0/test1m")
 	if err != nil {
 		fmt.Println("error in initializing rocksdb")
 		fmt.Println(err)
@@ -133,16 +143,44 @@ func NewStorageHandle(ctx context.Context, clientConfig StorageClientConfig) (sh
 		fmt.Println(err)
 	}
 
-	readOptions := gorocksdb.NewDefaultReadOptions()
-
-	slice, err := db.Get(readOptions, []byte(key))
-	if err != nil && value == string(slice.Data()) {
-		fmt.Println("value matched")
-	} else {
-		fmt.Println("value didnt match")
-		fmt.Println(string(slice.Data()))
-		fmt.Print(err)
+	/*ro := gorocksdb.NewDefaultReadOptions()
+	ro.SetFillCache(false)
+	it := db.NewIterator(ro)
+	defer it.Close()
+	it.Seek([]byte("swethv_ls_metrics1KB_1000000files_0subdir/file_1.txt"))
+	i := 1
+	for it = it; it.Valid(); it.Next() {
+		key := it.Key()
+		value := it.Value()
+		if i == 1 {
+			fmt.Printf("Key: %v Value: %v\n", string(key.Data()), string(value.Data()))
+		}
+		i++
+		key.Free()
+		value.Free()
 	}
+
+	fmt.Println(i)*/
+
+	/*	writeOptions := gorocksdb.NewDefaultWriteOptions()
+		key := "testkey"
+		value := "testvalue"
+		err = db.Put(writeOptions, []byte(key), []byte(value))
+		if err != nil {
+			fmt.Println("error in initializing rocksdb")
+			fmt.Println(err)
+		}
+
+		readOptions := gorocksdb.NewDefaultReadOptions()
+
+		slice, err := db.Get(readOptions, []byte(key))
+		if err != nil && value == string(slice.Data()) {
+			fmt.Println("value matched")
+		} else {
+			fmt.Println("value didnt match")
+			fmt.Println(string(slice.Data()))
+			fmt.Print(err)
+		}*/
 
 	sh = &storageClient{client: sc, db: db}
 	return
@@ -156,5 +194,113 @@ func (sh *storageClient) BucketHandle(bucketName string, billingProject string) 
 	}
 
 	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName}
+	sh.bh = bh
+	return
+}
+
+func (sh *storageClient) GetMetadataObjects() []*MinObject {
+	return sh.bh.ObjectsToCache
+}
+
+func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err error) {
+	length := 1000000
+	names := [1000000]string{}
+	index := 0
+	for _, ele := range items {
+		names[index] = sh.bh.bucketName + ele.Name
+		index++
+
+		if index == length {
+			break
+		}
+	}
+
+	rand.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
+
+	ro := gorocksdb.NewDefaultReadOptions()
+	ro.SetFillCache(false)
+
+	td := tdigest.New()
+	var mean float64
+
+	b := syncutil.NewBundle(ctx)
+	for i := 0; i < length; i++ {
+
+		b.Add(func(ctx context.Context) (err error) {
+
+			//	sub_slice := names[i*10000 : (i+1)*10000]
+			sub_slice := names[i*10000 : (i+1)*10000]
+			var key string
+			for _, key = range sub_slice {
+				start := time.Now()
+
+				output, err1 := sh.db.Get(ro, []byte(key))
+				if err1 != nil {
+					err = err1
+					return
+				}
+
+				elapsed := time.Since(start)
+				fmt.Println(elapsed)
+				microseconds := float64(elapsed) / float64(time.Microsecond)
+				//	fmt.Println(microseconds)
+				td.Add(microseconds, 1)
+				mean += microseconds
+
+				if len(output.Data()) == 0 {
+					fmt.Println("key not found")
+					fmt.Println(key)
+					//err = fmt.Errorf("key not found %s", key)
+				} else {
+					output.Free()
+				}
+			}
+
+			return
+		})
+	}
+
+	if err = b.Join(); err != nil {
+		return
+	}
+
+	fmt.Printf("Mean %d", mean/float64(length))
+	fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
+	fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
+	fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
+	fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
+	fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
+	return
+
+}
+
+func (sh *storageClient) WriteToDb(items []*MinObject) (err error) {
+	fmt.Println(len(items))
+	i := 1
+	writeOptions := gorocksdb.NewDefaultWriteOptions()
+	for _, ele := range items {
+		j, err1 := json.MarshalIndent(ele, "", " ")
+		if err1 != nil {
+			logger.Info("received error %s", err1)
+			return
+		}
+
+		if i == 1 {
+			fmt.Println(sh.bh.bucketName + ele.Name)
+			i++
+		}
+
+		err = sh.db.Put(writeOptions, []byte(sh.bh.bucketName+ele.Name), j)
+
+		if err != nil {
+			fmt.Println("Received error")
+			fmt.Println(err)
+			return
+		}
+	}
+
+	fmt.Println("Total eelements")
+	fmt.Println(i)
+
 	return
 }
