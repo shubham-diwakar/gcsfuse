@@ -252,8 +252,8 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 				mean += microseconds
 
 				if output.Size() == 0 {
-					fmt.Println("key not found")
-					fmt.Println(key)
+					/*fmt.Println("key not found")
+					fmt.Println(key)*/
 					notfound++
 					//err = fmt.Errorf("key not found %s", key)
 				} else {
