@@ -221,8 +221,16 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	fmt.Println("added till indx")
 	fmt.Println(index)
+	for i := 0; i < 10; i++ {
+		fmt.Println(names[i])
+	}
+
 	rand.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
 
+	fmt.Println("after shuffle")
+	for i := 0; i < 10; i++ {
+		fmt.Println(names[i])
+	}
 	ro := gorocksdb.NewDefaultReadOptions()
 	ro.SetFillCache(false)
 
