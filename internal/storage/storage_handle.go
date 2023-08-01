@@ -18,8 +18,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/exec"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -242,6 +245,12 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 				found++
 
+				kernelErr := clearKernelCache()
+				if kernelErr != nil {
+					fmt.Println("Received error for kernel cache")
+					fmt.Println(kernelErr)
+				}
+
 				start := time.Now()
 
 				output, err1 := sh.db.Get(ro, []byte(sub_slice[j]))
@@ -286,6 +295,22 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	return
 
+}
+
+func clearKernelCache() error {
+	if _, err := os.Stat("/proc/sys/vm/drop_caches"); err != nil {
+		log.Printf("Kernel cache file not found: %v", err)
+		// No need to stop the test execution if cache file is not found. Further
+		// reads will be served from kernel cache.
+		return nil
+	}
+
+	// sudo permission is required to clear kernel page cache.
+	cmd := exec.Command("sudo", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("clear kernel cache failed with error: %w", err)
+	}
+	return nil
 }
 
 func (sh *storageClient) WriteToDb(items []*MinObject) (err error) {
