@@ -49,6 +49,7 @@ type StorageHandle interface {
 	GetMetadataObjects() []*MinObject
 	WriteToDb(items []*MinObject) (err error)
 	ReadData(ctx context.Context, items []*MinObject) (err error)
+	ReadData2(ctx context.Context, items []*MinObject) (err error)
 }
 
 type storageClient struct {
@@ -295,6 +296,83 @@ func (sh *storageClient) ReadData(ctx context.Context, items []*MinObject) (err 
 
 	return
 
+}
+
+func (sh *storageClient) ReadData2(ctx context.Context, items []*MinObject) (err error) {
+	length := 1000000
+	names := [1000000]string{}
+	index := 0
+	for _, ele := range items {
+		names[index] = sh.bh.bucketName + ele.Name
+
+		index++
+		if index >= length {
+			break
+		}
+	}
+
+	rand.Shuffle(len(names), func(i, j int) { names[i], names[j] = names[j], names[i] })
+
+	ro := gorocksdb.NewDefaultReadOptions()
+	ro.SetFillCache(false)
+
+	var mean float64
+	notfound := 0
+
+	for i := 0; i < 10; i++ {
+		td := tdigest.New()
+		sub_slice := names[i*10000 : (i+1)*10000]
+
+		found := 0
+		for j := 0; j < 10000; j++ {
+			if sub_slice[j] == "" {
+				continue
+			}
+
+			found++
+
+			kernelErr := clearKernelCache()
+			if kernelErr != nil {
+				fmt.Println("Received error for kernel cache")
+				fmt.Println(kernelErr)
+			}
+
+			start := time.Now()
+
+			output, err1 := sh.db.Get(ro, []byte(sub_slice[j]))
+			if err1 != nil {
+				err = err1
+				return
+			}
+
+			elapsed := time.Since(start)
+			//fmt.Println(elapsed)
+			microseconds := float64(elapsed) / float64(time.Microsecond)
+			//	fmt.Println(microseconds)
+			td.Add(microseconds, 1)
+			mean += microseconds
+
+			if output.Size() == 0 {
+				/*fmt.Println("key not found")
+				fmt.Println(key)*/
+				notfound++
+				//err = fmt.Errorf("key not found %s", key)
+			} else {
+				output.Free()
+			}
+		}
+
+		fmt.Printf("Found %d\n", found)
+		fmt.Printf("Mean %.5f\n", mean/float64(10000))
+		fmt.Printf("50th: %.5f\n", td.Quantile(0.5))
+		fmt.Printf("90th: %.5f\n", td.Quantile(0.9))
+		fmt.Printf("99th: %.5f\n", td.Quantile(0.99))
+		fmt.Printf("99.9th: %.5f\n", td.Quantile(0.999))
+		fmt.Printf("99.99th: %.5f\n", td.Quantile(0.9999))
+	}
+
+	fmt.Println("not found %d", notfound)
+	return
 }
 
 func clearKernelCache() error {
