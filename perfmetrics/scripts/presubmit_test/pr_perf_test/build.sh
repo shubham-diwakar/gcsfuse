@@ -2,8 +2,6 @@
 # Running test only for when PR contains execute-perf-test label
 # It will take approx 80 minutes to run the script.
 set -e
-echo gcloud version
-pip install google-cloud-storage==402.0.0
 gcloud version
 sudo apt-get update
 echo Installing git
