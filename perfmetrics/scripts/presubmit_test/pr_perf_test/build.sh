@@ -19,8 +19,10 @@ sudo rm -rf /usr/local/go && tar -xzf go_tar.tar.gz && sudo mv go /usr/local
 export PATH=$PATH:/usr/local/go/bin
 echo Installing fio
 sudo apt-get install fio -y
-echo "Updating gcloud components"
-gcloud components update
+echo "installing gcloud latest version"
+curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-442.0.0-linux-x86_64.tar.gz
+tar -xf google-cloud-cli-442.0.0-linux-x86_64.tar.gz
+./google-cloud-sdk/install.sh
 
 # Run on master branch
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
