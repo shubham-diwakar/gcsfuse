@@ -24,6 +24,8 @@ curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-
 tar -xf google-cloud-cli-442.0.0-linux-x86_64.tar.gz
 ./google-cloud-sdk/install.sh
 
+gcloud storage ls --recursive gs://integration-test-tulsishah-2
+
 # Run on master branch
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 GODEBUG=asyncpreemptoff=1 go test ./tools/integration_tests/...  -p 1  --integrationTest -v --testbucket=integration-test-tulsishah-2 -timeout 15m
