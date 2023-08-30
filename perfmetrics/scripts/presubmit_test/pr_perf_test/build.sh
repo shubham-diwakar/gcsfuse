@@ -5,7 +5,7 @@ sudo apt-get update
 echo "Installing git"
 sudo apt-get install git
 echo "Installing go-lang 1.20.5"
-wget -O go_tar.tar.gz https://go.dev/dl/go1.20.5.linux-amd64.tar.gz -q
+wget -O go_tar.tar.gz https://go.dev/dl/go1.20.5.linux-$(dpkg --print-architecture).tar.gz -q
 sudo rm -rf /usr/local/go && tar -xzf go_tar.tar.gz && sudo mv go /usr/local
 export PATH=$PATH:/usr/local/go/bin
 echo "Installing docker "
