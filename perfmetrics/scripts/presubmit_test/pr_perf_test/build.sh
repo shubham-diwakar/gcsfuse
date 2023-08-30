@@ -1,31 +1,35 @@
 #!/bin/bash
-# Running test only for when PR contains execute-perf-test label
-# It will take approx 80 minutes to run the script.
 set -e
-gcloud version
 sudo apt-get update
-echo Installing git
+
+echo "Installing git"
 sudo apt-get install git
-echo Installing python3-pip
-sudo apt-get -y install python3-pip
-echo Installing libraries to run python script
-pip install google-cloud
-pip install google-cloud-vision
-pip install google-api-python-client
-pip install prettytable
-echo Installing go-lang  1.20.5
-wget -O go_tar.tar.gz https://go.dev/dl/go1.20.5.linux-amd64.tar.gz
+echo "Installing go-lang 1.20.5"
+wget -O go_tar.tar.gz https://go.dev/dl/go1.20.5.linux-amd64.tar.gz -q
 sudo rm -rf /usr/local/go && tar -xzf go_tar.tar.gz && sudo mv go /usr/local
 export PATH=$PATH:/usr/local/go/bin
-echo Installing fio
-sudo apt-get install fio -y
-echo "installing gcloud latest version"
-curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-442.0.0-linux-x86_64.tar.gz
-tar -xf google-cloud-cli-442.0.0-linux-x86_64.tar.gz
-./google-cloud-sdk/install.sh
+echo "Installing docker "
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
 
-gcloud storage ls --recursive gs://integration-test-tulsishah-2
-
-# Run on master branch
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
-GODEBUG=asyncpreemptoff=1 go test ./tools/integration_tests/...  -p 1  --integrationTest -v --testbucket=integration-test-tulsishah-2 -timeout 15m
+# Get the latest commitId of yesterday in the log file. Build gcsfuse and run
+# integration tests using code upto that commit.
+commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
+git stash
+git checkout $commitId
+
+echo "Building and installing gcsfuse"
+# Build the gcsfuse package using the same commands used during release.
+GCSFUSE_VERSION=0.0.0
+sudo docker build ./tools/package_gcsfuse_docker/ -t gcsfuse:$commitId --build-arg GCSFUSE_VERSION=$GCSFUSE_VERSION --build-arg BRANCH_NAME=$commitId
+sudo docker run -v $HOME/release:/release gcsfuse:$commitId cp -r /packages /release/
+sudo dpkg -i $HOME/release/packages/gcsfuse_${GCSFUSE_VERSION}_arm64.deb
+
+echo "Executing integration tests"
+GODEBUG=asyncpreemptoff=1 CGO_ENABLED=0 go test ./tools/integration_tests/... -p 1 --testInstalledPackage --integrationTest -v --testbucket=integration-test-tulsishah-2 -timeout 24m
