@@ -207,7 +207,8 @@ func NewDirInode(
 	}
 
 	// Set up the struct.
-	const typeCacheCapacity = 1 << 16
+	// Setting the capacity to around 4M
+	const typeCacheCapacity = 1 << 22
 	typed := &dirInode{
 		bucket:                     bucket,
 		mtimeClock:                 mtimeClock,
