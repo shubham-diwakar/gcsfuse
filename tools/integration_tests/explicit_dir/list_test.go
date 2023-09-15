@@ -27,26 +27,28 @@ import (
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/setup/implicit_and_explicit_dir_setup"
 )
 
-const DirectoryForImplicitExplicitDirListTesting = "directoryForImplicitExplicitDirListTesting"
+const DirectoryForExplicitDirListTesting = "directoryForExplicitDirListTesting"
 
 func TestListOnlyExplicitObjectsFromBucket(t *testing.T) {
 	// Clean the test Directory before running test.
-	setup.PreTestSetup(DirectoryForImplicitExplicitDirListTesting)
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitExplicitDirListTesting)
+	setup.PreTestSetup(DirectoryForExplicitDirListTesting)
+
+	// Clean the test Directory after running test.
+	testDir := path.Join(setup.MntDir(), DirectoryForExplicitDirListTesting)
 	defer setup.CleanUpDir(testDir)
 
 	// Directory Structure
-	// testBucket/directoryForImplicitExplicitDirListTesting/implicitDirectory                                                  -- Dir
-	// testBucket/directoryForImplicitExplicitDirListTesting/implicitDirectory/fileInImplicitDir1                               -- File
-	// testBucket/directoryForImplicitExplicitDirListTesting/implicitDirectory/implicitSubDirectory                             -- Dir
-	// testBucket/directoryForImplicitExplicitDirListTesting/implicitDirectory/implicitSubDirectory/fileInImplicitDir2          -- File
-	// testBucket/directoryForImplicitExplicitDirListTesting/explicitDirectory                                                  -- Dir
-	// testBucket/directoryForImplicitExplicitDirListTesting/explicitFile                                                       -- File
-	// testBucket/directoryForImplicitExplicitDirListTesting/explicitDirectory/fileInExplicitDir1                               -- File
-	// testBucket/directoryForImplicitExplicitDirListTesting/explicitDirectory/fileInExplicitDir2                               -- File
+	// testBucket/directoryForExplicitDirListTesting/implicitDirectory                                                  -- Dir
+	// testBucket/directoryForExplicitDirListTesting/implicitDirectory/fileInImplicitDir1                               -- File
+	// testBucket/directoryForExplicitDirListTesting/implicitDirectory/implicitSubDirectory                             -- Dir
+	// testBucket/directoryForExplicitDirListTesting/implicitDirectory/implicitSubDirectory/fileInImplicitDir2          -- File
+	// testBucket/directoryForExplicitDirListTesting/explicitDirectory                                                  -- Dir
+	// testBucket/directoryForExplicitDirListTesting/explicitFile                                                       -- File
+	// testBucket/directoryForExplicitDirListTesting/explicitDirectory/fileInExplicitDir1                               -- File
+	// testBucket/directoryForExplicitDirListTesting/explicitDirectory/fileInExplicitDir2                               -- File
 
-	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitExplicitDirListTesting)
-	implicit_and_explicit_dir_setup.CreateExplicitDirectoryStructure(DirectoryForImplicitExplicitDirListTesting, t)
+	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForExplicitDirListTesting)
+	implicit_and_explicit_dir_setup.CreateExplicitDirectoryStructure(DirectoryForExplicitDirListTesting, t)
 
 	err := filepath.WalkDir(testDir, func(path string, dir fs.DirEntry, err error) error {
 		if err != nil {
@@ -71,11 +73,11 @@ func TestListOnlyExplicitObjectsFromBucket(t *testing.T) {
 				t.Errorf("Incorrect number of objects in the test directory Expected:%d Actual:%d", implicit_and_explicit_dir_setup.NumberOfExplicitObjects, len(objs))
 			}
 
-			// testBucket/directoryForImplicitExplicitDirListTesting/explicitDir     -- Dir
+			// testBucket/directoryForExplicitDirListTesting/explicitDir     -- Dir
 			if objs[0].Name() != implicit_and_explicit_dir_setup.ExplicitDirectory || objs[0].IsDir() != true {
 				t.Errorf("Listed incorrect object Expected:%s Actual:%s", implicit_and_explicit_dir_setup.ExplicitDirectory, objs[0].Name())
 			}
-			// testBucket/directoryForImplicitExplicitDirListTesting/explicitFile    -- File
+			// testBucket/directoryForExplicitDirListTesting/explicitFile    -- File
 			if objs[1].Name() != implicit_and_explicit_dir_setup.ExplicitFile || objs[1].IsDir() != false {
 				t.Errorf("Listed incorrect object Expected:%s Actual:%s", implicit_and_explicit_dir_setup.ExplicitFile, objs[1].Name())
 			}
@@ -85,17 +87,17 @@ func TestListOnlyExplicitObjectsFromBucket(t *testing.T) {
 		if dir.IsDir() && dir.Name() == implicit_and_explicit_dir_setup.ExplicitDirectory {
 			// numberOfObjects - 2
 			if len(objs) != implicit_and_explicit_dir_setup.NumberOfFilesInExplicitDirectory {
-				t.Errorf("Incorrect number of objects in the directoryForListTest.")
+				t.Errorf("Incorrect number of objects in the directoryForListTest Expected:%d Actual:%d", implicit_and_explicit_dir_setup.NumberOfFilesInExplicitDirectory, len(objs))
 			}
 
-			// testBucket/directoryForImplicitExplicitDirListTesting/explicitDir/fileInExplicitDir1   -- File
+			// testBucket/directoryForExplicitDirListTesting/explicitDir/fileInExplicitDir1   -- File
 			if objs[0].Name() != implicit_and_explicit_dir_setup.FirstFileInExplicitDirectory || objs[0].IsDir() != false {
-				t.Errorf("Listed incorrect object")
+				t.Errorf("Listed incorrect object Expected:%s Actual:%s", implicit_and_explicit_dir_setup.FirstFileInExplicitDirectory, objs[0].Name())
 			}
 
-			// testBucket/directoryForImplicitExplicitDirListTesting/explicitDir/fileInExplicitDir2    -- File
+			// testBucket/directoryForExplicitDirListTesting/explicitDir/fileInExplicitDir2    -- File
 			if objs[1].Name() != implicit_and_explicit_dir_setup.SecondFileInExplicitDirectory || objs[1].IsDir() != false {
-				t.Errorf("Listed incorrect object")
+				t.Errorf("Listed incorrect objectExpected:%s Actual:%s", implicit_and_explicit_dir_setup.SecondFileInExplicitDirectory, objs[1].Name())
 			}
 			return nil
 		}
