@@ -40,7 +40,6 @@ const FirstFileInExplicitDirectory = "fileInExplicitDir1"
 const SecondFileInExplicitDirectory = "fileInExplicitDir2"
 const FileInImplicitDirectory = "fileInImplicitDir1"
 const FileInImplicitSubDirectory = "fileInImplicitDir2"
-
 const GzipEncode = false
 
 func RunTestsForImplicitDirAndExplicitDir(flags [][]string, m *testing.M) {
