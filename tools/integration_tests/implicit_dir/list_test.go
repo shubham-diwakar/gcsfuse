@@ -34,8 +34,7 @@ func TestListImplicitObjectsFromBucket(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirListTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirListTesting)
-	defer setup.CleanUpDir(testDir)
+	defer setup.CleanUpDir(DirectoryForImplicitDirListTesting)
 
 	// Directory Structure
 	// testBucket/directoryForImplicitDirListTesting/implicitDirectory                                                  -- Dir
@@ -50,6 +49,7 @@ func TestListImplicitObjectsFromBucket(t *testing.T) {
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirListTesting)
 	implicit_and_explicit_dir_setup.CreateExplicitDirectoryStructure(DirectoryForImplicitDirListTesting, t)
 
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirListTesting)
 	err := filepath.WalkDir(testDir, func(path string, dir fs.DirEntry, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)

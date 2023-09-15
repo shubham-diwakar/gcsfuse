@@ -282,6 +282,11 @@ func CleanMntDir() {
 	CleanUpDir(mntDir)
 }
 
+func CleanUpTestDir(testDir string) {
+	testDirPath := path.Join(mntDir, testDir)
+	CleanUpDir(testDirPath)
+}
+
 func PreTestSetup(testSubDir string) {
 	testDirPath := path.Join(MntDir(), testSubDir)
 	err := os.Mkdir(testDirPath, 0755)
