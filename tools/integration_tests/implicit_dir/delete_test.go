@@ -36,7 +36,7 @@ func TestDeleteNonEmptyImplicitDir(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, DirectoryForImplicitDirDeleteTesting)
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting)
@@ -56,7 +56,7 @@ func TestDeleteNonEmptyImplicitSubDir(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir())
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting)
@@ -78,7 +78,7 @@ func TestDeleteImplicitDirWithExplicitSubDir(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, DirectoryForImplicitDirDeleteTesting)
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting)
@@ -104,7 +104,7 @@ func TestDeleteImplicitDirWithImplicitSubDirContainingExplicitDir(t *testing.T) 
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, DirectoryForImplicitDirDeleteTesting)
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting)
@@ -131,7 +131,7 @@ func TestDeleteImplicitDirInExplicitDir(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, DirectoryForImplicitDirDeleteTesting)
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryInExplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting, t)
@@ -155,7 +155,7 @@ func TestDeleteExplicitDirContainingImplicitSubDir(t *testing.T) {
 	setup.PreTestSetup(DirectoryForImplicitDirDeleteTesting)
 
 	// Clean the test Directory after running test.
-	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, DirectoryForImplicitDirDeleteTesting)
+	testDir := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting)
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryInExplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting, t)
