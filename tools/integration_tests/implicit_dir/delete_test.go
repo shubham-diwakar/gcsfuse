@@ -108,8 +108,8 @@ func TestDeleteImplicitDirWithImplicitSubDirContainingExplicitDir(t *testing.T) 
 	defer setup.CleanUpDir(testDir)
 
 	implicit_and_explicit_dir_setup.CreateImplicitDirectoryStructure(DirectoryForImplicitDirDeleteTesting)
-	explicitDirPath := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, implicit_and_explicit_dir_setup.ImplicitDirectory, implicit_and_explicit_dir_setup.ImplicitSubDirectory, ExplicitDirInImplicitSubDir)
 
+	explicitDirPath := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, implicit_and_explicit_dir_setup.ImplicitDirectory, implicit_and_explicit_dir_setup.ImplicitSubDirectory, ExplicitDirInImplicitSubDir)
 	operations.CreateDirectoryWithNFiles(NumberOfFilesInExplicitDirInImplicitSubDir, explicitDirPath, PrefixFileInExplicitDirInImplicitSubDir, t)
 
 	dirPath := path.Join(setup.MntDir(), DirectoryForImplicitDirDeleteTesting, implicit_and_explicit_dir_setup.ImplicitDirectory)

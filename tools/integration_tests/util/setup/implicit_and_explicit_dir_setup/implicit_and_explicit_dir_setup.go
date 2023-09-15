@@ -80,16 +80,16 @@ func RemoveAndCheckIfDirIsDeleted(dirPath string, dirName string, t *testing.T) 
 
 // Create file in /tmp directory, write given content
 func createAndUploadImplicitFilesInBucket(fileName, gcsDirPath string) {
-	filePathInLocalDisk := path.Join(setup.Tmp, fileName)
-	f, err := os.Create(filePathInLocalDisk)
+	f, err := os.Create(fileName)
 	if err != nil {
 		log.Fatalf("Error in writing file:%v", err)
 	}
 
 	defer operations.CloseFile(f)
-	defer operations.RemoveFile(filePathInLocalDisk)
+	defer operations.RemoveFile(fileName)
 
-	err = operations.UploadGcsObject(filePathInLocalDisk, gcsDirPath, GzipEncode)
+	filePathInGcsBucket := path.Join(gcsDirPath, fileName)
+	err = operations.UploadGcsObject(fileName, filePathInGcsBucket, GzipEncode)
 	if err != nil {
 		log.Fatalf("Error in uploading file in gcs bucket:%v", err)
 	}
