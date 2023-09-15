@@ -41,6 +41,8 @@ const SecondFileInExplicitDirectory = "fileInExplicitDir2"
 const FileInImplicitDirectory = "fileInImplicitDir1"
 const FileInImplicitSubDirectory = "fileInImplicitDir2"
 
+const GzipEncode = false
+
 func RunTestsForImplicitDirAndExplicitDir(flags [][]string, m *testing.M) {
 	setup.ParseSetUpFlags()
 
@@ -77,50 +79,75 @@ func RemoveAndCheckIfDirIsDeleted(dirPath string, dirName string, t *testing.T) 
 	}
 }
 
-func CreateImplicitDirectoryStructure() {
-	// Implicit Directory Structure
-	// testBucket/implicitDirectory                                                  -- Dir
-	// testBucket/implicitDirectory/fileInImplicitDir1                               -- File
-	// testBucket/implicitDirectory/implicitSubDirectory                             -- Dir
-	// testBucket/implicitDirectory/implicitSubDirectory/fileInImplicitDir2          -- File
+// Create file in /tmp directory, write given content
+func createAndUploadImplicitFilesInBucket(fileName, gcsDirPath string) {
+	filePathInLocalDisk := path.Join(setup.Tmp, fileName)
+	f, err := os.Create(filePathInLocalDisk)
+	if err != nil {
+		log.Fatalf("Error in writing file:%v", err)
+	}
 
-	// Clean the bucket.
-	setup.RunScriptForTestData("../util/setup/implicit_and_explicit_dir_setup/testdata/delete_objects.sh", setup.TestBucket())
+	defer operations.CloseFile(f)
+	defer operations.RemoveFile(filePathInLocalDisk)
 
-	// Create implicit directory in bucket for testing.
-	setup.RunScriptForTestData("../util/setup/implicit_and_explicit_dir_setup/testdata/create_objects.sh", setup.TestBucket())
+	err = operations.UploadGcsObject(filePathInLocalDisk, gcsDirPath, GzipEncode)
+	if err != nil {
+		log.Fatalf("Error in uploading file in gcs bucket:%v", err)
+	}
 }
 
-func CreateExplicitDirectoryStructure(t *testing.T) {
-	// Explicit Directory structure
-	// testBucket/explicitDirectory                            -- Dir
-	// testBucket/explictFile                                  -- File
-	// testBucket/explicitDirectory/fileInExplicitDir1         -- File
-	// testBucket/explicitDirectory/fileInExplicitDir2         -- File
+func CreateImplicitDirectoryStructure(testDirName string) {
+	// Implicit Directory Structure
+	// testBucket/testDirName/implicitDirectory                                                  -- Dir
+	// testBucket/testDirName/implicitDirectory/fileInImplicitDir1                               -- File
+	// testBucket/testDirName/implicitDirectory/implicitSubDirectory                             -- Dir
+	// testBucket/testDirName/implicitDirectory/implicitSubDirectory/fileInImplicitDir2          -- File
 
-	dirPath := path.Join(setup.MntDir(), ExplicitDirectory)
+	dirInBucket := path.Join(setup.TestBucket(), testDirName)
+
+	filePathInTestBucket := path.Join(dirInBucket, ImplicitDirectory)
+	createAndUploadImplicitFilesInBucket(FileInImplicitDirectory, filePathInTestBucket)
+
+	filePathInTestBucket = path.Join(dirInBucket, ImplicitDirectory, ImplicitSubDirectory)
+	createAndUploadImplicitFilesInBucket(FileInImplicitSubDirectory, filePathInTestBucket)
+}
+
+func CreateExplicitDirectoryStructure(testDirName string, t *testing.T) {
+	// Explicit Directory structure
+	// testBucket/testDirName/explicitDirectory                            -- Dir
+	// testBucket/testDirName/explictFile                                  -- File
+	// testBucket/testDirName/explicitDirectory/fileInExplicitDir1         -- File
+	// testBucket/testDirName/explicitDirectory/fileInExplicitDir2         -- File
+
+	dirPath := path.Join(setup.MntDir(), testDirName, ExplicitDirectory)
 	operations.CreateDirectoryWithNFiles(NumberOfFilesInExplicitDirectory, dirPath, PrefixFileInExplicitDirectory, t)
-	filePath := path.Join(setup.MntDir(), ExplicitFile)
+	filePath := path.Join(setup.MntDir(), testDirName, ExplicitFile)
 	file, err := os.Create(filePath)
 	if err != nil {
-		t.Errorf("Create file at %q: %v", setup.MntDir(), err)
+		t.Errorf("Create file at %q: %v", dirPath, err)
 	}
 
 	// Closing file at the end.
 	defer operations.CloseFile(file)
 }
 
-func CreateImplicitDirectoryInExplicitDirectoryStructure(t *testing.T) {
-	// testBucket/explicitDirectory                                                                   -- Dir
-	// testBucket/explictFile                                                                         -- File
-	// testBucket/explicitDirectory/fileInExplicitDir1                                                -- File
-	// testBucket/explicitDirectory/fileInExplicitDir2                                                -- File
-	// testBucket/explicitDirectory/implicitDirectory                                                 -- Dir
-	// testBucket/explicitDirectory/implicitDirectory/fileInImplicitDir1                              -- File
-	// testBucket/explicitDirectory/implicitDirectory/implicitSubDirectory                            -- Dir
-	// testBucket/explicitDirectory/implicitDirectory/implicitSubDirectory/fileInImplicitDir2         -- File
+func CreateImplicitDirectoryInExplicitDirectoryStructure(testDirName string, t *testing.T) {
+	// testBucket/testDirName/explicitDirectory                                                                   -- Dir
+	// testBucket/testDirName/explictFile                                                                         -- File
+	// testBucket/testDirName/explicitDirectory/fileInExplicitDir1                                                -- File
+	// testBucket/testDirName/explicitDirectory/fileInExplicitDir2                                                -- File
+	// testBucket/testDirName/explicitDirectory/implicitDirectory                                                 -- Dir
+	// testBucket/testDirName/explicitDirectory/implicitDirectory/fileInImplicitDir1                              -- File
+	// testBucket/testDirName/explicitDirectory/implicitDirectory/implicitSubDirectory                            -- Dir
+	// testBucket/testDirName/explicitDirectory/implicitDirectory/implicitSubDirectory/fileInImplicitDir2         -- File
 
-	CreateExplicitDirectoryStructure(t)
-	dirPathInBucket := path.Join(setup.TestBucket(), ExplicitDirectory)
-	setup.RunScriptForTestData("../util/setup/implicit_and_explicit_dir_setup/testdata/create_objects.sh", dirPathInBucket)
+	CreateExplicitDirectoryStructure(testDirName, t)
+
+	dirInBucket := path.Join(setup.TestBucket(), testDirName, ExplicitDirectory)
+
+	filePathInTestBucket := path.Join(dirInBucket, ImplicitDirectory)
+	createAndUploadImplicitFilesInBucket(FileInImplicitDirectory, filePathInTestBucket)
+
+	filePathInTestBucket = path.Join(dirInBucket, ImplicitDirectory, ImplicitSubDirectory)
+	createAndUploadImplicitFilesInBucket(FileInImplicitSubDirectory, filePathInTestBucket)
 }
