@@ -65,7 +65,7 @@ To alleviate this slowness, Cloud Storage FUSE supports using cached data where 
 ```--stat-cache-ttl``` also controls the duration for which Cloud Storage FUSE allows the kernel to cache inode attributes. Caching these can help with file system performance, since otherwise the kernel must send a request for inode attributes to Cloud Storage FUSE for each call to ```write(2)```, ```stat(2)```, and others.
 
 The size of the stat cache can also be configured with ```--stat-cache-capacity```. By default the stat cache will hold up to 4096 items. If you have folders containing more than 4096 items (folders or files) you may want to increase this, otherwise the caching will not function properly when listing that folder's contents:
-- ListObjects will return information on the items within the folder. Each item's data is cached
+- ListObjects will return information on the items within the folder. Each item's metadata is cached
 - Because there are more objects than cache capacity, the earliest entries will be evicted
 - The linux kernel then asks for a little more information on each file.
 - As the earliest cache entries were evicted, this is a fresh GetObjectDetails request
