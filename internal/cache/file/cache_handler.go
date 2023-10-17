@@ -65,9 +65,11 @@ func (fch *CacheHandler) ReadFile(object *gcs.MinObject, bucket gcs.Bucket, star
 	}
 	downloadPath := fch.getFileDownloadPath(object.Name, bucket.Name())
 	fileDownloadJob := fch.fdm.GetDownloadJob(object, bucket, downloadPath)
-	err = fileDownloadJob.Download(0, false)
 
-	if err != nil {
+	ctx, _ = context.WithCancel(context.Background())
+	fileDownloadJobStatus := fileDownloadJob.Download(ctx, 0, false)
+
+	if fileDownloadJobStatus.Err != nil {
 		return
 	}
 

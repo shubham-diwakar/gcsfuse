@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"os"
 	"strings"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
@@ -10,6 +11,9 @@ import (
 
 type FileDownloadManager struct {
 	fileInfoCache    *lru.Cache
+	uid              uint32
+	gid              uint32
+	perm             os.FileMode
 	fileDownloadJobs map[string]*FileDownloadJob
 	mu               locker.Locker
 }
@@ -29,7 +33,7 @@ func (fdm *FileDownloadManager) GetDownloadJob(object *gcs.MinObject, bucket gcs
 	objectPath := getObjectPath(bucket.Name(), object.Name)
 	fileDownloadJob, ok := fdm.fileDownloadJobs[objectPath]
 	if !ok {
-		fileDownloadJob = NewFileDownloadJob(object, bucket, downloadPath, fdm.fileInfoCache)
+		fileDownloadJob = NewFileDownloadJob(object, bucket, downloadPath, fdm.fileInfoCache, fdm.perm, fdm.uid, fdm.gid)
 		fdm.fileDownloadJobs[objectPath] = fileDownloadJob
 	}
 	return fileDownloadJob
@@ -41,7 +45,7 @@ func (fdm *FileDownloadManager) CancelJob(objectName string, bucketName string) 
 	objectPath := getObjectPath(bucketName, objectName)
 	fileDownloadJob, ok := fdm.fileDownloadJobs[objectPath]
 	if ok {
-		err = fileDownloadJob.Cancel()
+		fileDownloadJob.Cancel()
 		delete(fdm.fileDownloadJobs, objectPath)
 		return
 	}
