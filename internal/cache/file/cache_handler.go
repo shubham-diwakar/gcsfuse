@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/data"
-	downloader2 "github.com/googlecloudplatform/gcsfuse/internal/cache/downloader"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file/downloader"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/util"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 	"golang.org/x/net/context"
 )
 
 type CacheHandler struct {
 	fileInfoCache *lru.Cache
-	fdm           *downloader2.FileDownloadManager
+	fdm           *downloader.FileDownloadManager
 	cacheLocation string
 }
 
-func NewCacheHandler(fileInfoCache *lru.Cache, fdm *downloader2.FileDownloadManager, cacheLocation string) (fch *CacheHandler) {
+func NewCacheHandler(fileInfoCache *lru.Cache, fdm *downloader.FileDownloadManager, cacheLocation string) (fch *CacheHandler) {
 	fch = &CacheHandler{fileInfoCache: fileInfoCache, fdm: fdm, cacheLocation: cacheLocation}
 	return
 }
@@ -30,7 +30,7 @@ func (fch *CacheHandler) getFileDownloadPath(objectName string, bucketName strin
 
 }
 func (fch *CacheHandler) ReadFile(object *gcs.MinObject, bucket gcs.Bucket, startDownload bool) (fileCacheHandle *CacheHandle, err error) {
-	tr, _ := time.Parse(time.RFC3339, downloader2.FixBucketCreationTime)
+	tr, _ := time.Parse(time.RFC3339, downloader.FixBucketCreationTime)
 	fileInfoKey := data.FileInfoKey{ObjectName: object.Name, BucketName: bucket.Name(), BucketCreationTime: tr}
 	fileInfoKeyName, err := fileInfoKey.Key()
 	if err != nil {
@@ -74,16 +74,8 @@ func (fch *CacheHandler) ReadFile(object *gcs.MinObject, bucket gcs.Bucket, star
 	}
 
 	// create file handle
-	err = os.MkdirAll(filepath.Dir(downloadPath), 0777)
-	if err != nil {
-		return
-	}
-	flag := os.O_RDONLY
-	_, err = os.Stat(downloadPath)
-	if err != nil {
-		flag = flag | os.O_CREATE
-	}
-	fh, err := os.OpenFile(downloadPath, flag, 0777)
+	// To-Do(sethiay): Add appropriate permissions
+	fh, err := util.CreateFile(downloadPath, os.FileMode(0666), os.O_RDONLY, uint32(os.Geteuid()), uint32(os.Geteuid()))
 	if err != nil {
 		return
 	}

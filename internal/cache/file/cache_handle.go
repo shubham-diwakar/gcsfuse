@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -8,14 +9,14 @@ import (
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/data"
-	"github.com/googlecloudplatform/gcsfuse/internal/cache/downloader"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file/downloader"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 )
 
 type CacheHandle struct {
 	fileHandle      *os.File
-	fileDownloadJob *downloader.FileDownloadJob
+	fileDownloadJob *downloader.Job
 	fileInfoCache   *lru.Cache
 }
 
@@ -51,8 +52,9 @@ func (fch *CacheHandle) Read(object *gcs.MinObject, bucket gcs.Bucket, offset ui
 	}
 
 	if fileInfo.(data.FileInfo).Offset < offset {
-		err = fch.fileDownloadJob.Download(offset, true)
-		if err != nil {
+		ctx := context.Background()
+		jobStatus := fch.fileDownloadJob.Download(ctx, int64(offset), true)
+		if jobStatus.Err != nil {
 			return
 		}
 	}
