@@ -75,6 +75,7 @@ type entry struct {
 func NewCache(maxSize uint64) (c Cache) {
 	c.maxSize = maxSize
 	c.index = make(map[string]*list.Element)
+	//c.mu = locker.New("LRU", c.CheckInvariants)
 	return
 }
 

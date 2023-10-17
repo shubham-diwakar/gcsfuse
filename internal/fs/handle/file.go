@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
 	"github.com/googlecloudplatform/gcsfuse/internal/fs/inode"
 	"github.com/googlecloudplatform/gcsfuse/internal/gcsx"
 	"github.com/jacobsa/syncutil"
@@ -35,12 +36,14 @@ type FileHandle struct {
 	// INVARIANT: If reader != nil, reader.CheckInvariants() doesn't panic.
 	//
 	// GUARDED_BY(mu)
-	reader gcsx.RandomReader
+	reader           gcsx.RandomReader
+	fileCacheHandler *file.CacheHandler
 }
 
-func NewFileHandle(inode *inode.FileInode) (fh *FileHandle) {
+func NewFileHandle(inode *inode.FileInode, fileCacheHandler *file.CacheHandler) (fh *FileHandle) {
 	fh = &FileHandle{
-		inode: inode,
+		inode:            inode,
+		fileCacheHandler: fileCacheHandler,
 	}
 
 	fh.mu = syncutil.NewInvariantMutex(fh.checkInvariants)
@@ -78,6 +81,7 @@ func (fh *FileHandle) Read(ctx context.Context, dst []byte, offset int64, sequen
 	// Lock the inode and attempt to ensure that we have a reader for its current
 	// state, or clear fh.reader if it's not possible to create one (probably
 	// because the inode is dirty).
+
 	fh.inode.Lock()
 	err = fh.tryEnsureReader(ctx, sequentialReadSizeMb)
 	if err != nil {
@@ -160,7 +164,7 @@ func (fh *FileHandle) tryEnsureReader(ctx context.Context, sequentialReadSizeMb 
 	}
 
 	// Attempt to create an appropriate reader.
-	rr := gcsx.NewRandomReader(fh.inode.Source(), fh.inode.Bucket(), sequentialReadSizeMb)
+	rr := gcsx.NewRandomReader(fh.inode.Source(), fh.inode.Bucket(), sequentialReadSizeMb, fh.fileCacheHandler)
 
 	fh.reader = rr
 	return

@@ -25,6 +25,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/downloader"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
 	"github.com/googlecloudplatform/gcsfuse/internal/config"
 	"github.com/googlecloudplatform/gcsfuse/internal/contentcache"
 	"github.com/googlecloudplatform/gcsfuse/internal/fs/handle"
@@ -146,6 +149,15 @@ func NewFileSystem(
 			cfg.LocalFileCache = false
 		}
 	}
+	var fileCacheHandler *file.CacheHandler
+	logger.Tracef(fmt.Sprintf("%v", cfg.MountConfig.FileCacheConfig.MaxSizeInMB))
+	if cfg.MountConfig.FileCacheConfig.MaxSizeInMB > 0 {
+		cacheSize := uint64(cfg.MountConfig.FileCacheConfig.MaxSizeInMB) * 1024 * 1024
+		fileInfoCache := lru.NewCache(cacheSize)
+		fileDownloadManager := downloader.NewFileDownloadManager(&fileInfoCache)
+		logger.Tracef("there")
+		fileCacheHandler = file.NewCacheHandler(&fileInfoCache, &fileDownloadManager, string(cfg.MountConfig.CacheLocation))
+	}
 
 	// Set up the basic struct.
 	fs := &fileSystem{
@@ -171,6 +183,7 @@ func NewFileSystem(
 		localFileInodes:            make(map[inode.Name]inode.Inode),
 		handles:                    make(map[fuseops.HandleID]interface{}),
 		mountConfig:                cfg.MountConfig,
+		fileCacheHandler:           fileCacheHandler,
 	}
 
 	// Set up root bucket
@@ -400,6 +413,8 @@ type fileSystem struct {
 
 	// Config specified by the user using configFile flag.
 	mountConfig *config.MountConfig
+
+	fileCacheHandler *file.CacheHandler
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1521,7 +1536,7 @@ func (fs *fileSystem) CreateFile(
 	handleID := fs.nextHandleID
 	fs.nextHandleID++
 
-	fs.handles[handleID] = handle.NewFileHandle(child.(*inode.FileInode))
+	fs.handles[handleID] = handle.NewFileHandle(child.(*inode.FileInode), fs.fileCacheHandler)
 	op.Handle = handleID
 
 	fs.mu.Unlock()
@@ -2011,7 +2026,7 @@ func (fs *fileSystem) OpenFile(
 	handleID := fs.nextHandleID
 	fs.nextHandleID++
 
-	fs.handles[handleID] = handle.NewFileHandle(in)
+	fs.handles[handleID] = handle.NewFileHandle(in, fs.fileCacheHandler)
 	op.Handle = handleID
 
 	// When we observe object generations that we didn't create, we assign them
@@ -2034,7 +2049,7 @@ func (fs *fileSystem) ReadFile(
 
 	fh.Lock()
 	defer fh.Unlock()
-
+	//logger.Tracef("hey there, from filesystem", fmt.Errorf("hey there"))
 	// Serve the read.
 	op.BytesRead, err = fh.Read(ctx, op.Dst, op.Offset, fs.sequentialReadSizeMb)
 

@@ -19,6 +19,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
 	"github.com/googlecloudplatform/gcsfuse/internal/monitor/tags"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 	"go.opencensus.io/stats"
@@ -106,7 +107,7 @@ type RandomReader interface {
 
 // NewRandomReader create a random reader for the supplied object record that
 // reads using the given bucket.
-func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32) RandomReader {
+func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32, fileCacheHandler *file.CacheHandler) RandomReader {
 	return &randomReader{
 		object:               o,
 		bucket:               bucket,
@@ -115,6 +116,7 @@ func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb i
 		seeks:                0,
 		totalReadBytes:       0,
 		sequentialReadSizeMb: sequentialReadSizeMb,
+		fileCacheHandler:     fileCacheHandler,
 	}
 }
 
@@ -140,6 +142,8 @@ type randomReader struct {
 	totalReadBytes uint64
 
 	sequentialReadSizeMb int32
+	fileCacheHandler     *file.CacheHandler
+	cacheHandle          *file.CacheHandle
 }
 
 func (rr *randomReader) CheckInvariants() {
@@ -163,6 +167,19 @@ func (rr *randomReader) ReadAt(
 	ctx context.Context,
 	p []byte,
 	offset int64) (n int, err error) {
+	if rr.cacheHandle == nil {
+		cacheHandle, cacheErr := rr.fileCacheHandler.ReadFile(rr.object, rr.bucket, true)
+		if cacheErr == nil {
+			rr.cacheHandle = cacheHandle
+		}
+	}
+
+	cacheN, cacheErr := rr.cacheHandle.Read(rr.object, rr.bucket, uint64(offset), p)
+
+	if cacheErr == nil {
+		return cacheN, cacheErr
+	}
+
 	for len(p) > 0 {
 		// Have we blown past the end of the object?
 		if offset >= int64(rr.object.Size) {
