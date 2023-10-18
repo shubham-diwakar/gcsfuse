@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/data"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/util"
+	"github.com/googlecloudplatform/gcsfuse/internal/locker"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 	"golang.org/x/net/context"
 )
@@ -33,9 +34,10 @@ const (
 const ReadChunkSize = 8 * 1024 * 1024
 
 // To-Do(sethiay) Fine tune this timeout with experiments
-const TimeoutInSec = time.Duration(time.Second * 5)
+const Timeout = time.Second * 5
 
-// Job downloads the requested object from GCS into the specified local path.
+// Job downloads the requested object from GCS into the specified local file
+// path with given permissions and ownership.
 type Job struct {
 	/////////////////////////
 	// Constant data
@@ -54,12 +56,19 @@ type Job struct {
 	// Mutable state
 	/////////////////////////
 
-	status      JobStatus
-	subscribers list.List
-	cancelCtx   context.Context
-	cancelFunc  context.CancelFunc
+	// Represents the current status of Job.
+	status JobStatus
 
-	mu sync.Mutex
+	// list of subscribers waiting on async download.
+	//
+	// INVARIANT: Each element is of type jobSubscriber
+	subscribers list.List
+
+	// Context & its CancelFunc for cancelling async download in progress.
+	cancelCtx  context.Context
+	cancelFunc context.CancelFunc
+
+	mu locker.Locker
 }
 
 // JobStatus represents the status of job.
@@ -89,8 +98,21 @@ func NewJob(object *gcs.MinObject, bucket gcs.Bucket, filePath string,
 		fileUid:              fileUid,
 		fileGid:              fileGid,
 	}
+	job.mu = locker.New("Job-"+filePath, job.checkInvariants)
 	job.init()
 	return
+}
+
+// CheckInvariants panic if any internal invariants have been violated.
+func (job *Job) checkInvariants() {
+	// INVARIANT: Each subscriber is of type jobSubscriber
+	for e := job.subscribers.Front(); e != nil; e = e.Next() {
+		switch e.Value.(type) {
+		case jobSubscriber:
+		default:
+			panic(fmt.Sprintf("Unexpected element type: %v", reflect.TypeOf(e.Value)))
+		}
+	}
 }
 
 // init initializes the mutable members of Job corresponding to not started
@@ -106,7 +128,7 @@ func (job *Job) init() {
 //
 // Not concurrency safe and requires LOCK(job.mu)
 func (job *Job) cancel() {
-	if job.status.Name == DOWNLOADING {
+	if job.status.Name == DOWNLOADING && job.cancelFunc != nil {
 		job.cancelFunc()
 	}
 	job.status.Name = CANCELLED
@@ -241,7 +263,7 @@ func (job *Job) downloadObjectAsync(ctx context.Context) {
 		select {
 		case <-job.cancelCtx.Done():
 			job.mu.Lock()
-			job.status.Name = CANCELLED
+			job.cancelFunc = nil
 			job.cancel()
 			job.mu.Unlock()
 			return
@@ -351,7 +373,7 @@ func (job *Job) Download(ctx context.Context, offset int64, waitForDownload bool
 
 	// Wait till subscriber is notified by async job or the async job is cancelled
 	// or till the timeout.
-	ctx, _ = context.WithTimeout(ctx, TimeoutInSec)
+	ctx, _ = context.WithTimeout(ctx, Timeout)
 	select {
 	case <-ctx.Done():
 		err = fmt.Errorf(fmt.Sprintf("Download: %v", ctx.Err()))
