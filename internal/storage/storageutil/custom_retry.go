@@ -15,6 +15,10 @@
 package storageutil
 
 import (
+	"log"
+	"net/http"
+	"net/http/httputil"
+
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
 )
@@ -39,4 +43,21 @@ func ShouldRetry(err error) (b bool) {
 		}
 	}
 	return
+}
+
+// Roundtripper type which logs the request body.
+type logBody struct {
+	rt http.RoundTripper
+}
+
+func (lb logBody) RoundTrip(r *http.Request) (*http.Response, error) {
+	// Use httputil to dump the request. Setting the second arg to true means
+	// that the body will be included as well.
+	dump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		// Handle err.
+	}
+	log.Printf("raw req: %v", string(dump))
+	resp, err := lb.rt.RoundTrip(r)
+	return resp, err
 }

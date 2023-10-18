@@ -84,6 +84,10 @@ func CreateHttpClient(storageClientConfig *StorageClientConfig) (httpClient *htt
 		UserAgent: storageClientConfig.UserAgent,
 	}
 
+	httpClient.Transport = &logBody{
+		rt: httpClient.Transport,
+	}
+
 	return httpClient, err
 }
 
