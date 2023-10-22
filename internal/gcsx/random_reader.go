@@ -19,6 +19,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
 	"github.com/googlecloudplatform/gcsfuse/internal/monitor/tags"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 	"go.opencensus.io/stats"
@@ -106,7 +107,7 @@ type RandomReader interface {
 
 // NewRandomReader create a random reader for the supplied object record that
 // reads using the given bucket.
-func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32) RandomReader {
+func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32, fileCacheHandler *file.CacheHandler) RandomReader {
 	return &randomReader{
 		object:               o,
 		bucket:               bucket,
@@ -115,6 +116,7 @@ func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb i
 		seeks:                0,
 		totalReadBytes:       0,
 		sequentialReadSizeMb: sequentialReadSizeMb,
+		fileCacheHandler:     fileCacheHandler,
 	}
 }
 
@@ -140,6 +142,14 @@ type randomReader struct {
 	totalReadBytes uint64
 
 	sequentialReadSizeMb int32
+
+	fileCacheHandler *file.CacheHandler
+
+	fileCacheHandle *file.CacheHandle
+
+	// Cache related offset
+	startOffset int64
+	prevOffset  int64
 }
 
 func (rr *randomReader) CheckInvariants() {
@@ -159,10 +169,46 @@ func (rr *randomReader) CheckInvariants() {
 	}
 }
 
+func (rr *randomReader) ReadViaCache(
+	p []byte,
+	offset int64) (n int, err error) {
+
+	if rr.fileCacheHandle == nil {
+		rr.fileCacheHandle, err = rr.fileCacheHandler.InitiateRead(rr.object, rr.bucket, offset)
+		if err != nil {
+			return 0, fmt.Errorf("while creating cachehandle instance: %v", err)
+		}
+	}
+
+	if !rr.fileCacheHandle.IsSequential(offset) {
+		err = rr.fileCacheHandler.DecrementJobRefCount(rr.object, rr.bucket)
+		if err != nil {
+			n = 0
+			return
+		}
+	}
+
+	return rr.fileCacheHandle.Read(rr.object, rr.bucket, uint64(offset), p)
+}
+
 func (rr *randomReader) ReadAt(
 	ctx context.Context,
 	p []byte,
 	offset int64) (n int, err error) {
+
+	if rr.fileCacheHandler != nil {
+		n, err = rr.ReadViaCache(p, offset)
+		if err == nil {
+			return
+		}
+
+		if err.Error() == "Cache Not Available" || err.Error() == "File Info not in the cache" {
+			// fallback to GCS reader
+		} else {
+			return
+		}
+	}
+
 	for len(p) > 0 {
 		// Have we blown past the end of the object?
 		if offset >= int64(rr.object.Size) {
@@ -267,6 +313,10 @@ func (rr *randomReader) Destroy() {
 		rr.reader.Close()
 		rr.reader = nil
 		rr.cancel = nil
+	}
+
+	if rr.fileCacheHandler != nil {
+		rr.fileCacheHandler.RemoveFileFromCache(rr.object, rr.bucket)
 	}
 }
 
