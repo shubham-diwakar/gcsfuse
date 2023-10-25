@@ -170,12 +170,12 @@ func (rr *randomReader) CheckInvariants() {
 }
 
 func (rr *randomReader) ReadViaCache(
-		ctx context.Context,
-		p []byte,
-		offset int64) (n int, err error) {
+	ctx context.Context,
+	p []byte,
+	offset int64) (n int, err error) {
 
 	if rr.fileCacheHandle == nil {
-		rr.fileCacheHandle, err = rr.fileCacheHandler.InitiateRead(rr.object, rr.bucket, offset)
+		rr.fileCacheHandle, err = rr.fileCacheHandler.GetCacheHandle(rr.object, rr.bucket, offset)
 		if err != nil {
 			return 0, fmt.Errorf("while creating cachehandle instance: %v", err)
 		}
@@ -194,9 +194,9 @@ func (rr *randomReader) ReadViaCache(
 }
 
 func (rr *randomReader) ReadAt(
-		ctx context.Context,
-		p []byte,
-		offset int64) (n int, err error) {
+	ctx context.Context,
+	p []byte,
+	offset int64) (n int, err error) {
 
 	if rr.fileCacheHandler != nil {
 		n, err = rr.ReadViaCache(ctx, p, offset)
@@ -204,7 +204,11 @@ func (rr *randomReader) ReadAt(
 			return
 		}
 
-		if err.Error() == file.InvalidFileHandle || err.Error() == file.InvalidFileDownloadJob {
+		if err.Error() == file.InvalidFileHandle ||
+			err.Error() == file.InvalidFileDownloadJob ||
+			err.Error() == file.ErrInSeekingFileHandle ||
+			err.Error() == file.ErrInReadingFileHandle {
+
 			rr.fileCacheHandle.Close()
 			rr.fileCacheHandle = nil
 		}
@@ -325,8 +329,8 @@ func (rr *randomReader) Destroy() {
 //
 // REQUIRES: rr.reader != nil
 func (rr *randomReader) readFull(
-		ctx context.Context,
-		p []byte) (n int, err error) {
+	ctx context.Context,
+	p []byte) (n int, err error) {
 	// Start a goroutine that will cancel the read operation we block on below if
 	// the calling context is cancelled, but only if this method has not already
 	// returned (to avoid souring the reader for the next read if this one is
@@ -360,9 +364,9 @@ func (rr *randomReader) readFull(
 // a prefix. Irrespective of the size requested, we try to fetch more data
 // from GCS defined by sequentialReadSizeMb flag to serve future read requests.
 func (rr *randomReader) startRead(
-		ctx context.Context,
-		start int64,
-		size int64) (err error) {
+	ctx context.Context,
+	start int64,
+	size int64) (err error) {
 	// Make sure start and size are legal.
 	if start < 0 || uint64(start) > rr.object.Size || size < 0 {
 		err = fmt.Errorf(
