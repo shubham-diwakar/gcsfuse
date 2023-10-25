@@ -15,10 +15,18 @@
 package file
 
 import (
+	"fmt"
+	"os"
+	"path"
+
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/data"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/file/downloader"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/util"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 )
+
+const DefaultFileMode = os.FileMode(0644)
 
 /****** Dummy struct - will be removed ********/
 
@@ -30,16 +38,30 @@ import (
 type CacheHandler struct {
 	fileInfoCache *lru.Cache
 
-	fileDownloadManager *downloader.FileDownloadManager
+	jobManager *downloader.JobManager
 
 	cacheLocation string
 }
 
-func NewCacheHandler(fileInfoCache *lru.Cache, fdm *downloader.FileDownloadManager, cacheLocation string) *CacheHandler {
+func (chr *CacheHandler) getLocalFilePath(objectName string, bucketName string) string {
+	return path.Join(chr.cacheLocation, bucketName, objectName)
+
+}
+
+func (chr *CacheHandler) createLocalFileReadHandle(objectName string, bucketName string) (*os.File, error) {
+	fileSpec := data.FileSpec{
+		Path: chr.getLocalFilePath(objectName, bucketName),
+		Perm: DefaultFileMode,
+	}
+
+	return util.CreateFile(fileSpec, os.O_RDONLY)
+}
+
+func NewCacheHandler(fileInfoCache *lru.Cache, jobManager *downloader.JobManager, cacheLocation string) *CacheHandler {
 	return &CacheHandler{
-		fileInfoCache:       fileInfoCache,
-		fileDownloadManager: fdm,
-		cacheLocation:       cacheLocation,
+		fileInfoCache: fileInfoCache,
+		jobManager:    jobManager,
+		cacheLocation: cacheLocation,
 	}
 }
 
@@ -48,26 +70,35 @@ func NewCacheHandler(fileInfoCache *lru.Cache, fdm *downloader.FileDownloadManag
 // which contains the downloaded content. Finally, it returns a CacheHandle that
 // contains the async DownloadJob and the local file handle.
 // TODO (raj-prince) to implement.
-func (ch *CacheHandler) InitiateRead(object *gcs.MinObject, bucket gcs.Bucket, initialOffset int64) (*CacheHandle, error) {
-	return nil, nil
+func (chr *CacheHandler) GetCacheHandle(object *gcs.MinObject, bucket gcs.Bucket, initialOffset int64) (*CacheHandle, error) {
+
+	localFileReadHandle, err := chr.createLocalFileReadHandle(object.Name, bucket.Name())
+	if err != nil {
+		return nil, fmt.Errorf("error while create local-file read handle: %v", err)
+	}
+
+	// create read file handle
+	// create file download job
+	// add entry in the cache
+	//
 }
 
 // DecrementJobRefCount decrement the reference count of clients which is dependent of
 // async job. This will cancel the async job once, the count reaches to zero.
 // TODO (raj-prince) to implement.
-func (ch *CacheHandler) DecrementJobRefCount(object *gcs.MinObject, bucket gcs.Bucket) error {
+func (chr *CacheHandler) DecrementJobRefCount(object *gcs.MinObject, bucket gcs.Bucket) error {
 	return nil
 }
 
 // RemoveFileFromCache removes the entry from the fileInfoCache, cancel the async running job incase,
 // and delete the locally downloaded cached-file.
 // TODO (raj-prince) to implement.
-func (ch *CacheHandler) RemoveFileFromCache(object *gcs.MinObject, bucket gcs.Bucket) {
+func (chr *CacheHandler) RemoveFileFromCache(object *gcs.MinObject, bucket gcs.Bucket) {
 
 }
 
 // Destroy destroys the internal state of CacheHandler correctly specifically closing any fileHandles.
 // TODO (raj-prince) to implement.
-func (ch *CacheHandler) Destroy() {
+func (chr *CacheHandler) Destroy() {
 
 }
