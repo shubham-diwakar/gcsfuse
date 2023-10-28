@@ -27,8 +27,6 @@ import (
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 )
 
-const DefaultFileMode = os.FileMode(0644)
-
 // CacheHandler Responsible for managing fileInfoCache as well as fileDownloadManager.
 type CacheHandler struct {
 	// fileInfoCache contains the reference of fileInfo cache.
@@ -53,7 +51,7 @@ func (chr *CacheHandler) getLocalFilePath(objectName string, bucketName string) 
 func (chr *CacheHandler) createLocalFileReadHandle(objectName string, bucketName string) (*os.File, error) {
 	fileSpec := data.FileSpec{
 		Path: chr.getLocalFilePath(objectName, bucketName),
-		Perm: DefaultFileMode,
+		Perm: util.DefaultFileMode,
 	}
 
 	return util.CreateFile(fileSpec, os.O_RDONLY)

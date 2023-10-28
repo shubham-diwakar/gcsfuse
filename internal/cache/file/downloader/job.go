@@ -135,7 +135,6 @@ func (job *Job) Cancel() {
 		job.status.Name = CANCELLED
 		job.notifySubscribers()
 	}
-<<<<<<< HEAD
 }
 
 // Invalidate invalidates the download job i.e. changes the state to INVALID.
@@ -151,8 +150,6 @@ func (job *Job) Invalidate() {
 	}
 	job.status.Name = INVALID
 	job.notifySubscribers()
-=======
->>>>>>> 8afabd7b (intermediate changes)
 }
 
 // subscribe adds subscriber for download job and returns channel which is
@@ -324,12 +321,8 @@ func (job *Job) downloadObjectAsync() {
 
 // Download downloads object till the given offset and returns the status of
 // job. If the object is already downloaded or there was failure/cancellation in
-<<<<<<< HEAD
 // download, then it returns the job status. The caller shouldn't read data
 // from file in cache if jobStatus is FAILED or INVALID.
-=======
-// download, then it returns the job status
->>>>>>> 8afabd7b (intermediate changes)
 //
 // Acquires and releases LOCK(job.mu)
 func (job *Job) Download(ctx context.Context, offset int64, waitForDownload bool) (jobStatus JobStatus, err error) {
@@ -347,11 +340,7 @@ func (job *Job) Download(ctx context.Context, offset int64, waitForDownload bool
 		// start the async download
 		job.status.Name = DOWNLOADING
 		go job.downloadObjectAsync()
-<<<<<<< HEAD
 	} else if job.status.Name == FAILED || job.status.Name == CANCELLED || job.status.Name == INVALID || job.status.Offset >= offset {
-=======
-	} else if job.status.Name == FAILED || job.status.Name == CANCELLED || job.status.Offset >= offset {
->>>>>>> 8afabd7b (intermediate changes)
 		defer job.mu.Unlock()
 		return job.status, nil
 	}

@@ -32,7 +32,6 @@ import (
 	. "github.com/jacobsa/ogletest"
 )
 
-const TestObjectName = "test.txt"
 const TestObjectContent = "content of test object"
 const TestCacheMaxSize = 50
 

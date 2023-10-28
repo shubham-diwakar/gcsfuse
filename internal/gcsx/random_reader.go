@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
+	"github.com/googlecloudplatform/gcsfuse/internal/cache/util"
 	"github.com/googlecloudplatform/gcsfuse/internal/monitor/tags"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
 	"go.opencensus.io/stats"
@@ -170,9 +171,9 @@ func (rr *randomReader) CheckInvariants() {
 }
 
 func (rr *randomReader) ReadViaCache(
-	ctx context.Context,
-	p []byte,
-	offset int64) (n int, err error) {
+		ctx context.Context,
+		p []byte,
+		offset int64) (n int, err error) {
 
 	if rr.fileCacheHandle == nil {
 		rr.fileCacheHandle, err = rr.fileCacheHandler.GetCacheHandle(rr.object, rr.bucket, offset)
@@ -181,33 +182,25 @@ func (rr *randomReader) ReadViaCache(
 		}
 	}
 
-	if !rr.fileCacheHandle.IsSequential(offset) && rr.fileCacheHandle.DoesContributeForJobRef() {
-		err = rr.fileCacheHandler.DecrementJobRefCount(rr.object, rr.bucket)
-		if err != nil {
-			n = 0
-			return
-		}
-		rr.fileCacheHandle.RemoveContributionForJobRef()
-	}
-
-	return rr.fileCacheHandle.Read(ctx, rr.object, rr.bucket, uint64(offset), p)
+	return rr.fileCacheHandle.Read(ctx, rr.object, rr.bucket, offset, p)
 }
 
 func (rr *randomReader) ReadAt(
-	ctx context.Context,
-	p []byte,
-	offset int64) (n int, err error) {
+		ctx context.Context,
+		p []byte,
+		offset int64) (n int, err error) {
 
 	if rr.fileCacheHandler != nil {
 		n, err = rr.ReadViaCache(ctx, p, offset)
 		if err == nil {
+
 			return
 		}
 
-		if err.Error() == file.InvalidFileHandle ||
-			err.Error() == file.InvalidFileDownloadJob ||
-			err.Error() == file.ErrInSeekingFileHandle ||
-			err.Error() == file.ErrInReadingFileHandle {
+		if err.Error() == util.InvalidFileHandleErrMsg ||
+				err.Error() == util.InvalidFileDownloadJobErrMsg ||
+				err.Error() == util.ErrInSeekingFileHandleMsg ||
+				err.Error() == util.ErrInReadingFileHandleMsg {
 
 			rr.fileCacheHandle.Close()
 			rr.fileCacheHandle = nil
@@ -329,8 +322,8 @@ func (rr *randomReader) Destroy() {
 //
 // REQUIRES: rr.reader != nil
 func (rr *randomReader) readFull(
-	ctx context.Context,
-	p []byte) (n int, err error) {
+		ctx context.Context,
+		p []byte) (n int, err error) {
 	// Start a goroutine that will cancel the read operation we block on below if
 	// the calling context is cancelled, but only if this method has not already
 	// returned (to avoid souring the reader for the next read if this one is
@@ -364,9 +357,9 @@ func (rr *randomReader) readFull(
 // a prefix. Irrespective of the size requested, we try to fetch more data
 // from GCS defined by sequentialReadSizeMb flag to serve future read requests.
 func (rr *randomReader) startRead(
-	ctx context.Context,
-	start int64,
-	size int64) (err error) {
+		ctx context.Context,
+		start int64,
+		size int64) (err error) {
 	// Make sure start and size are legal.
 	if start < 0 || uint64(start) > rr.object.Size || size < 0 {
 		err = fmt.Errorf(

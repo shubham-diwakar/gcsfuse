@@ -154,9 +154,9 @@ func NewFileSystem(
 	if cfg.MountConfig.FileCacheConfig.MaxSizeInMB > 0 {
 		cacheSize := uint64(cfg.MountConfig.FileCacheConfig.MaxSizeInMB) * 1024 * 1024
 		fileInfoCache := lru.NewCache(cacheSize)
-		fileDownloadManager := downloader.NewFileDownloadManager(fileInfoCache)
+		fileDownloadJobManager := downloader.NewJobManager(fileInfoCache, cfg.FilePerms, string(cfg.MountConfig.CacheLocation), cfg.SequentialReadSizeMb)
 		logger.Tracef("there")
-		fileCacheHandler = file.NewCacheHandler(fileInfoCache, &fileDownloadManager, string(cfg.MountConfig.CacheLocation))
+		fileCacheHandler = file.NewCacheHandler(fileInfoCache, fileDownloadJobManager, string(cfg.MountConfig.CacheLocation))
 	}
 
 	// Set up the basic struct.
