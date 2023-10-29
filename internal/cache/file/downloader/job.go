@@ -291,6 +291,9 @@ func (job *Job) downloadObjectAsync() {
 					return
 				}
 				start += maxRead
+				// Todo - (ayush) - fix bug: if seqRead is 16 MiB, object Size is 20MiB
+				// Then it only downloads till 16 MiB, because, after 16MiB download
+				// reader is still not-nil.
 				if readErr == io.EOF {
 					newReader = nil
 				}

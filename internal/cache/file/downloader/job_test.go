@@ -42,7 +42,7 @@ import (
 // Boilerplate
 ////////////////////////////////////////////////////////////////////////
 
-const CacheMaxSize = 50
+const CacheMaxSize = 2 * DefaultSequentialReadSizeMb * util.MiB
 const DefaultObjectName = "foo"
 const DefaultSequentialReadSizeMb = 100
 

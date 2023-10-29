@@ -37,7 +37,7 @@ const TestCacheMaxSize = 50
 
 var cacheLocation = path.Join(os.Getenv("HOME"), "cache/location")
 
-const TestSequentialSizeInMB = 200
+const TestSequentialSizeInMB = 100
 
 func TestCacheHandler(t *testing.T) { RunTests(t) }
 
@@ -94,7 +94,7 @@ func (chrT *cacheHandlerTest) SetUp(*TestInfo) {
 	chrT.addTestFileInfoEntryInCache()
 
 	// Job manager
-	chrT.jobManager = downloader.NewJobManager(chrT.cache, DefaultFileMode, cacheLocation, TestSequentialSizeInMB)
+	chrT.jobManager = downloader.NewJobManager(chrT.cache, util.DefaultFileMode, cacheLocation, TestSequentialSizeInMB)
 
 	// Mocked cached handler object.
 	chrT.cacheHandler = NewCacheHandler(chrT.cache, chrT.jobManager, cacheLocation)
