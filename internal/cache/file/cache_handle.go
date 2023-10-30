@@ -103,6 +103,13 @@ func (fch *CacheHandle) Read(ctx context.Context, object *gcs.MinObject, offset 
 		return 0, fmt.Errorf("wrong offset requested: %d", offset)
 	}
 
+	// Checking before updating the previous offset.
+	waitForDownload := true
+	if !fch.IsSequential(offset) {
+		fch.isSequential = false
+		waitForDownload = false
+	}
+
 	fch.prevOffset = offset
 
 	// We need to download the data till offset + len(dst), if not already.
@@ -113,12 +120,6 @@ func (fch *CacheHandle) Read(ctx context.Context, object *gcs.MinObject, offset 
 	objSize := int64(object.Size)
 	if requiredOffset > objSize {
 		requiredOffset = objSize
-	}
-
-	waitForDownload := true
-	if !fch.IsSequential(offset) {
-		fch.isSequential = false
-		waitForDownload = false
 	}
 
 	jobStatus, err := fch.fileDownloadJob.Download(ctx, requiredOffset, waitForDownload)
