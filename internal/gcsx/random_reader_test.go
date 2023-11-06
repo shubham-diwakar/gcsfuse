@@ -159,7 +159,7 @@ func (t *RandomReaderTest) SetUp(ti *TestInfo) {
 	t.bucket = storage.NewMockBucket(ti.MockController, "bucket")
 
 	// Set up the reader.
-	rr := NewRandomReader(t.object, t.bucket, sequentialReadSizeInMb)
+	rr := NewRandomReader(t.object, t.bucket, sequentialReadSizeInMb, nil, false)
 	t.rr.wrapped = rr.(*randomReader)
 }
 
@@ -521,7 +521,7 @@ func (t *RandomReaderTest) UpgradesSequentialReads_NoExistingReader() {
 	t.object.Size = 1 << 40
 	const readSize = 1 * MB
 	// Set up the custom randomReader.
-	rr := NewRandomReader(t.object, t.bucket, readSize/MB)
+	rr := NewRandomReader(t.object, t.bucket, readSize/MB, nil, false)
 	t.rr.wrapped = rr.(*randomReader)
 
 	// Simulate a previous exhausted reader that ended at the offset from which
@@ -553,7 +553,7 @@ func (t *RandomReaderTest) SequentialReads_NoExistingReader_requestedSizeGreater
 	const chunkSize = 1 * MB
 	const readSize = 3 * MB
 	// Set up the custom randomReader.
-	rr := NewRandomReader(t.object, t.bucket, chunkSize/MB)
+	rr := NewRandomReader(t.object, t.bucket, chunkSize/MB, nil, false)
 	t.rr.wrapped = rr.(*randomReader)
 	// Create readers for each chunk.
 	chunk1Reader := strings.NewReader(strings.Repeat("x", chunkSize))
@@ -599,7 +599,7 @@ func (t *RandomReaderTest) SequentialReads_existingReader_requestedSizeGreaterTh
 	const chunkSize = 1 * MB
 	const readSize = 3 * MB
 	// Set up the custom randomReader.
-	rr := NewRandomReader(t.object, t.bucket, chunkSize/MB)
+	rr := NewRandomReader(t.object, t.bucket, chunkSize/MB, nil, false)
 	t.rr.wrapped = rr.(*randomReader)
 	// Simulate an existing reader at the correct offset, which will be exhausted
 	// by the read below.
@@ -647,4 +647,21 @@ func (t *RandomReaderTest) SequentialReads_existingReader_requestedSizeGreaterTh
 	ExpectEq(readSize, t.rr.wrapped.start)
 	// Limit is same as the byteRange of last GCS call made.
 	ExpectEq(existingSize+readSize, t.rr.wrapped.limit)
+}
+
+//////////////////// RandomReaderCacheTest ////////////////////////////////////
+
+type RandomReaderCacheTest struct {
+	object *gcs.MinObject
+	bucket storage.MockBucket
+	rr     checkingRandomReader
+}
+
+func init() { RegisterTestSuite(&RandomReaderCacheTest{}) }
+
+func (t *RandomReaderCacheTest) SetUp(ti *TestInfo) {
+}
+
+func (t *RandomReaderCacheTest) TearDown() {
+	t.rr.Destroy()
 }

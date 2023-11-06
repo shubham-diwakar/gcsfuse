@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/file"
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/util"
@@ -108,16 +109,17 @@ type RandomReader interface {
 
 // NewRandomReader create a random reader for the supplied object record that
 // reads using the given bucket.
-func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32, fileCacheHandler *file.CacheHandler) RandomReader {
+func NewRandomReader(o *gcs.MinObject, bucket gcs.Bucket, sequentialReadSizeMb int32, fileCacheHandler *file.CacheHandler, downloadForRandomRead bool) RandomReader {
 	return &randomReader{
-		object:               o,
-		bucket:               bucket,
-		start:                -1,
-		limit:                -1,
-		seeks:                0,
-		totalReadBytes:       0,
-		sequentialReadSizeMb: sequentialReadSizeMb,
-		fileCacheHandler:     fileCacheHandler,
+		object:                o,
+		bucket:                bucket,
+		start:                 -1,
+		limit:                 -1,
+		seeks:                 0,
+		totalReadBytes:        0,
+		sequentialReadSizeMb:  sequentialReadSizeMb,
+		fileCacheHandler:      fileCacheHandler,
+		downloadForRandomRead: downloadForRandomRead,
 	}
 }
 
@@ -148,9 +150,7 @@ type randomReader struct {
 
 	fileCacheHandle *file.CacheHandle
 
-	// Cache related offset
-	startOffset int64
-	prevOffset  int64
+	downloadForRandomRead bool
 }
 
 func (rr *randomReader) CheckInvariants() {
@@ -182,7 +182,7 @@ func (rr *randomReader) ReadViaCache(
 		}
 	}
 
-	return rr.fileCacheHandle.Read(ctx, rr.object, false, offset, p)
+	return rr.fileCacheHandle.Read(ctx, rr.object, rr.downloadForRandomRead, offset, p)
 }
 
 func (rr *randomReader) ReadAt(
@@ -193,17 +193,22 @@ func (rr *randomReader) ReadAt(
 	if rr.fileCacheHandler != nil {
 		n, err = rr.ReadViaCache(ctx, p, offset)
 		if err == nil {
-
 			return
 		}
 
-		if err.Error() == util.InvalidFileHandleErrMsg ||
-			err.Error() == util.InvalidFileDownloadJobErrMsg ||
-			err.Error() == util.ErrInSeekingFileHandleMsg ||
-			err.Error() == util.ErrInReadingFileHandleMsg {
+		if strings.Contains(err.Error(), util.InvalidFileHandleErrMsg) ||
+			strings.Contains(err.Error(), util.InvalidFileDownloadJobErrMsg) ||
+			strings.Contains(err.Error(), util.InvalidFileInfoCacheErrMsg) ||
+			strings.Contains(err.Error(), util.ErrInSeekingFileHandleMsg) ||
+			strings.Contains(err.Error(), util.ErrInReadingFileHandleMsg) {
 
-			rr.fileCacheHandle.Close()
+			err = rr.fileCacheHandle.Close()
+			if err != nil {
+				return 0, fmt.Errorf("while closing the fileCacheHandle: %v", err)
+			}
 			rr.fileCacheHandle = nil
+		} else if !strings.Contains(err.Error(), util.FallbackToGCSErrMsg) {
+			return 0, fmt.Errorf("while reading via cache: %v", err)
 		}
 	}
 

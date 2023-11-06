@@ -164,7 +164,7 @@ func (fh *FileHandle) tryEnsureReader(ctx context.Context, sequentialReadSizeMb 
 	}
 
 	// Attempt to create an appropriate reader.
-	rr := gcsx.NewRandomReader(fh.inode.Source(), fh.inode.Bucket(), sequentialReadSizeMb, fh.fileCacheHandler)
+	rr := gcsx.NewRandomReader(fh.inode.Source(), fh.inode.Bucket(), sequentialReadSizeMb, fh.fileCacheHandler, false)
 
 	fh.reader = rr
 	return
