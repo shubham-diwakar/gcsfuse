@@ -319,7 +319,7 @@ func (rr *randomReader) Destroy() {
 	}
 
 	if rr.fileCacheHandler != nil {
-		rr.fileCacheHandler.RemoveFileFromCache(rr.object, rr.bucket)
+		rr.fileCacheHandler.InvalidateCache(rr.object, rr.bucket)
 	}
 }
 
