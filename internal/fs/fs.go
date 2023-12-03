@@ -120,6 +120,9 @@ type ServerConfig struct {
 
 	// MountConfig has all the config specified by the user using configFile flag.
 	MountConfig *config.MountConfig
+
+	// Enable stackdriver monitoring.
+	EnableMonitoring bool
 }
 
 // Create a fuse file system server according to the supplied configuration.
