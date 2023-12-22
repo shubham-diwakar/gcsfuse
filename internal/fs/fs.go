@@ -278,7 +278,7 @@ func makeRootForBucket(
 		&syncerBucket,
 		fs.mtimeClock,
 		fs.cacheClock,
-		fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMbPerDirectory,
+		fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb,
 	)
 }
 
@@ -701,7 +701,7 @@ func (fs *fileSystem) mintInode(ic inode.Core) (in inode.Inode) {
 			ic.Bucket,
 			fs.mtimeClock,
 			fs.cacheClock,
-			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMbPerDirectory)
+			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb)
 
 		// Implicit directories
 	case ic.FullName.IsDir():
@@ -724,7 +724,7 @@ func (fs *fileSystem) mintInode(ic inode.Core) (in inode.Inode) {
 			ic.Bucket,
 			fs.mtimeClock,
 			fs.cacheClock,
-			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMbPerDirectory)
+			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb)
 
 	case inode.IsSymlink(ic.Object):
 		in = inode.NewSymlinkInode(

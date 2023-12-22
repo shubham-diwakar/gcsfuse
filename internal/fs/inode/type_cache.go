@@ -76,7 +76,7 @@ type typeCache struct {
 func newTypeCache(sizeInMB int, ttl time.Duration) typeCache {
 	if ttl > 0 && sizeInMB != 0 {
 		if sizeInMB < -1 {
-			panic("unhandled scenario: type-cache-max-size-mb-per-dir < -1")
+			panic("unhandled scenario: type-cache-max-size-mb < -1")
 		}
 		var lruSizeInBytesToUse uint64 = math.MaxUint64 // default for when sizeInMb = -1, increasing
 		if sizeInMB > 0 {
