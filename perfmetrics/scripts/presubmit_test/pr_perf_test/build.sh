@@ -25,6 +25,8 @@ echo "Building and installing gcsfuse..."
 commitId=$(git log origin/$BRANCH_NAME --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
 ./perfmetrics/scripts/build_and_install_gcsfuse.sh $commitId
 
+git checkout origin/$BRANCH_NAME
+
 echo "Running e2e tests on installed package...."
 # $1 argument is refering to value of testInstalledPackage
 ./perfmetrics/scripts/run_e2e_tests.sh $RUN_E2E_TESTS_ON_INSTALLED_PACKAGE
