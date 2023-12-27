@@ -20,7 +20,6 @@ set -e
 readonly RUN_E2E_TESTS_ON_INSTALLED_PACKAGE=true
 
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
-BRANCH_NAME=read_cache_release
 echo "Building and installing gcsfuse..."
 # Get the latest commitId of yesterday in the log file. Build gcsfuse and run
 commitId=$(git log origin/$BRANCH_NAME --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
