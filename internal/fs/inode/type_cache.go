@@ -73,7 +73,7 @@ type typeCache struct {
 
 // Create a cache whose information expires with the supplied TTL. If the TTL
 // is zero, nothing will ever be cached.
-func newTypeCache(sizeInMB int, ttl time.Duration) typeCache {
+func NewTypeCache(sizeInMB int, ttl time.Duration) TypeCache {
 	if ttl > 0 && sizeInMB != 0 {
 		if sizeInMB < -1 {
 			panic("unhandled scenario: type-cache-max-size-mb < -1")
@@ -82,12 +82,12 @@ func newTypeCache(sizeInMB int, ttl time.Duration) typeCache {
 		if sizeInMB > 0 {
 			lruSizeInBytesToUse = util.MiBsToBytes(uint64(sizeInMB))
 		}
-		return typeCache{
+		return &typeCache{
 			ttl:     ttl,
 			entries: lru.NewCache(lruSizeInBytesToUse),
 		}
 	}
-	return typeCache{}
+	return &typeCache{}
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -149,6 +149,9 @@ type typeCacheBucketView struct {
 }
 
 func NewTypeCacheBucketView(stc TypeCache, bn string) TypeCache {
+	if stc == nil {
+		panic("The passed shared-type-cache is nil")
+	}
 	return &typeCacheBucketView{sharedTypeCache: stc, bucketName: bn}
 }
 

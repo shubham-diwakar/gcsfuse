@@ -78,7 +78,7 @@ func (t *DirHandleTest) resetDirHandle() {
 		&t.bucket,
 		&t.clock,
 		&t.clock,
-		0,
+		inode.NewTypeCacheBucketView(inode.NewTypeCache(0, 0), ""),
 	)
 
 	t.dh = NewDirHandle(

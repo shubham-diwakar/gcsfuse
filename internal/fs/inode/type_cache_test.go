@@ -92,9 +92,10 @@ func (t *ZeroTtlTypeCacheTest) TearDown() {
 ////////////////////////////////////////////////////////////////////////
 
 func createNewTypeCache(sizeInMB int, ttl time.Duration) *typeCache {
-	tc := newTypeCache(sizeInMB, ttl)
-	AssertNe(nil, &tc)
-	return &tc
+	tc := NewTypeCache(sizeInMB, ttl)
+	AssertNe(nil, tc)
+	AssertNe(nil, tc.(*typeCache))
+	return tc.(*typeCache)
 }
 
 ////////////////////////////////////////////////////////////////////////

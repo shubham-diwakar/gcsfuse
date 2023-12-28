@@ -130,6 +130,11 @@ type DirInode interface {
 	// localFileEntries lists the local files present in the directory.
 	// Local means that the file is not yet present on GCS.
 	LocalFileEntries(localFileInodes map[Name]Inode) (localEntries []fuseutil.Dirent)
+
+	// Returns true if this is a top-level super-directory
+	// containing all the underlying buckets as directories
+	// in case of dynamic-mount.
+	IsBaseDirInode() bool
 }
 
 // An inode that represents a directory from a GCS bucket.
@@ -175,7 +180,7 @@ type dirInode struct {
 	// cache.CheckInvariants() does not panic.
 	//
 	// GUARDED_BY(mu)
-	cache typeCache
+	cache TypeCache
 }
 
 var _ DirInode = &dirInode{}
@@ -209,10 +214,18 @@ func NewDirInode(
 	bucket *gcsx.SyncerBucket,
 	mtimeClock timeutil.Clock,
 	cacheClock timeutil.Clock,
-	typeCacheSizeInMb int) (d DirInode) {
+	tc TypeCache) (d DirInode) {
 
 	if !name.IsDir() {
 		panic(fmt.Sprintf("Unexpected name: %s", name))
+	}
+
+	if tc == nil {
+		panic("nil type-cache passed")
+	}
+
+	if tc.(*typeCacheBucketView) == nil {
+		panic("Improper type-cache passed. Expected is an instance of typeCacheBucketView")
 	}
 
 	typed := &dirInode{
@@ -224,7 +237,7 @@ func NewDirInode(
 		enableNonexistentTypeCache: enableNonexistentTypeCache,
 		name:                       name,
 		attrs:                      attrs,
-		cache:                      newTypeCache(typeCacheSizeInMb, typeCacheTTL),
+		cache:                      tc,
 	}
 
 	typed.lc.Init(id)
@@ -820,4 +833,8 @@ func (d *dirInode) LocalFileEntries(localFileInodes map[Name]Inode) (localEntrie
 		}
 	}
 	return
+}
+
+func (d *dirInode) IsBaseDirInode() bool {
+	return false
 }

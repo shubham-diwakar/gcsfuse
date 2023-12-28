@@ -112,7 +112,8 @@ func (t *DirTest) resetInodeWithTypeCacheConfigs(implicitDirs, enableNonexistent
 		&t.bucket,
 		&t.clock,
 		&t.clock,
-		typeCacheMaxSizeMb)
+		NewTypeCacheBucketView(NewTypeCache(typeCacheMaxSizeMb, typeCacheTTL), ""),
+	)
 
 	t.d = t.in.(*dirInode)
 	AssertNe(nil, t.d)

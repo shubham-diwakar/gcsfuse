@@ -189,6 +189,8 @@ func NewFileSystem(
 		mountConfig:                cfg.MountConfig,
 		fileCacheHandler:           fileCacheHandler,
 		cacheFileForRangeRead:      cfg.MountConfig.FileCacheConfig.CacheFileForRangeRead,
+		sharedTypeCache:            inode.NewTypeCache(cfg.MountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb, cfg.DirTypeCacheTTL),
+		typeCacheBucketViews:       map[string]inode.TypeCache{},
 	}
 
 	// Set up root bucket
@@ -198,6 +200,14 @@ func NewFileSystem(
 		root = makeRootForAllBuckets(fs)
 	} else {
 		logger.Info("Set up root directory for bucket " + cfg.BucketName)
+
+		if _, ok := fs.typeCacheBucketViews[cfg.BucketName]; !ok {
+			logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", cfg.BucketName)
+			fs.typeCacheBucketViews[cfg.BucketName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, "")
+		} else {
+			logger.Debugf("type-cache-bucket-view for bucket %s already exists", cfg.BucketName)
+		}
+
 		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName, false)
 		if err != nil {
 			return nil, fmt.Errorf("SetUpBucket: %w", err)
@@ -278,7 +288,7 @@ func makeRootForBucket(
 		&syncerBucket,
 		fs.mtimeClock,
 		fs.cacheClock,
-		fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb,
+		fs.typeCacheBucketViews[syncerBucket.Name()],
 	)
 }
 
@@ -459,6 +469,14 @@ type fileSystem struct {
 
 	// Config specified by the user using configFile flag.
 	mountConfig *config.MountConfig
+
+	// mount-level shared type-cache
+	sharedTypeCache inode.TypeCache
+
+	// Individual bucket-level type-cache-bucket-view.
+	// It will have exactly one entry if static-mount,
+	// and will have one or more if dynamic-mount.
+	typeCacheBucketViews map[string]inode.TypeCache
 
 	// fileCacheHandler manages read only file cache. It is non-nil only when
 	// file cache is enabled at the time of mounting.
@@ -701,7 +719,7 @@ func (fs *fileSystem) mintInode(ic inode.Core) (in inode.Inode) {
 			ic.Bucket,
 			fs.mtimeClock,
 			fs.cacheClock,
-			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb)
+			fs.typeCacheBucketViews[ic.Bucket.Name()])
 
 		// Implicit directories
 	case ic.FullName.IsDir():
@@ -724,7 +742,7 @@ func (fs *fileSystem) mintInode(ic inode.Core) (in inode.Inode) {
 			ic.Bucket,
 			fs.mtimeClock,
 			fs.cacheClock,
-			fs.mountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb)
+			fs.typeCacheBucketViews[ic.Bucket.Name()])
 
 	case inode.IsSymlink(ic.Object):
 		in = inode.NewSymlinkInode(
@@ -929,7 +947,18 @@ func (fs *fileSystem) lookUpOrCreateChildInode(
 	getLookupResult := func() (*inode.Core, error) {
 		parent.Lock()
 		defer parent.Unlock()
-		return parent.LookUpChild(ctx, childName)
+
+		core, err := parent.LookUpChild(ctx, childName)
+		if err == nil && parent.IsBaseDirInode() {
+			if _, ok := fs.typeCacheBucketViews[childName]; !ok {
+				logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", childName)
+				fs.typeCacheBucketViews[childName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, childName)
+			} else {
+				logger.Debugf("type-cache-bucket-view for bucket %s already exists", childName)
+			}
+		}
+
+		return core, err
 	}
 
 	// Run a retry loop around lookUpOrCreateInodeIfNotStale.
