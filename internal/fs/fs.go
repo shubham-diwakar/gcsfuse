@@ -205,7 +205,7 @@ func NewFileSystem(
 			logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", cfg.BucketName)
 			fs.typeCacheBucketViews[cfg.BucketName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, "")
 		} else {
-			logger.Debugf("type-cache-bucket-view for bucket %s already exists", cfg.BucketName)
+			logger.Tracef("type-cache-bucket-view for bucket %s already exists", cfg.BucketName)
 		}
 
 		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName, false)
@@ -954,7 +954,7 @@ func (fs *fileSystem) lookUpOrCreateChildInode(
 				logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", childName)
 				fs.typeCacheBucketViews[childName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, childName)
 			} else {
-				logger.Debugf("type-cache-bucket-view for bucket %s already exists", childName)
+				logger.Tracef("type-cache-bucket-view for bucket %s already exists", childName)
 			}
 		}
 
