@@ -25,12 +25,31 @@ import (
 	"github.com/googlecloudplatform/gcsfuse/internal/util"
 )
 
-// TypeCache is interface to expose typeCache
-// outside of the inode package, to allow
-// it to be shared at the mount-level.
+// TypeCache is a (name -> Type) map.
+// It maintains TTL for each entry for supporting
+// TTL-based expiration.
+// Sample usage:
+//
+//	tc := NewTypeCache(size, ttl)
+//	tc.Insert(time.Now(), "file", RegularFileType)
+//	tc.Insert(time.Now(), "dir", ExplicitDirType)
+//	tc.Get(time.Now(),"file") -> RegularFileType
+//	tc.Get(time.Now(),"dir") -> ExplicitDirType
+//	tc.Get(time.Now()+ttl+1ns, "file") -> internally tc.Erase("file") -> UnknownType
+//	tc.Erase("dir")
+//	tc.Get(time.Now(),"dir") -> UnknownType
 type TypeCache interface {
+	// Insert inserts the given entry (name -> type)
+	// with the entry-expiration at now+ttl.
 	Insert(now time.Time, name string, it Type)
+	// Erase removes the entry with the given name.
 	Erase(name string)
+	// Get returns the entry with given name, and also
+	// records this entry as latest accessed in the cache.
+	// If now > expiration, then entry is removed from cache, and
+	// UnknownType is returned.
+	// If entry doesn't exist in the cache, then
+	// UnknownType is returned.
 	Get(now time.Time, name string) Type
 }
 
@@ -51,7 +70,7 @@ func (ce cacheEntry) Size() uint64 {
 //   - We have recorded that N is a directory.
 //   - We have recorded that N is both a file and a directory.
 //
-// Must be created with newTypeCache. May be contained in a larger struct.
+// Must be created with NewTypeCache. May be contained in a larger struct.
 // External synchronization is required.
 type typeCache struct {
 	/////////////////////////
@@ -71,14 +90,19 @@ type typeCache struct {
 	entries *lru.Cache
 }
 
-// Create a cache whose information expires with the supplied TTL. If the TTL
-// is zero, nothing will ever be cached.
+// NewTypeCache creates an LRU-policy-based cache with given max-size and TTL.
+// Any entry whose TTL has expired, is removed from the cache on next access (Get).
+// When insertion of next entry would cause size of cache > sizeInMB,
+// older entries are evicted according to the LRU-policy.
+// If any of TTL or sizeInMB is zero, nothing is ever cached
+//
+//	i.e. Insert, Erase do nothing, and Get will always return UnknownType.
 func NewTypeCache(sizeInMB int, ttl time.Duration) TypeCache {
 	if ttl > 0 && sizeInMB != 0 {
 		if sizeInMB < -1 {
 			panic("unhandled scenario: type-cache-max-size-mb < -1")
 		}
-		var lruSizeInBytesToUse uint64 = math.MaxUint64 // default for when sizeInMb = -1, increasing
+		var lruSizeInBytesToUse uint64 = math.MaxUint64 // default for when sizeInMb = -1
 		if sizeInMB > 0 {
 			lruSizeInBytesToUse = util.MiBsToBytes(uint64(sizeInMB))
 		}
@@ -89,10 +113,6 @@ func NewTypeCache(sizeInMB int, ttl time.Duration) TypeCache {
 	}
 	return &typeCache{}
 }
-
-////////////////////////////////////////////////////////////////////////
-// Public interface
-////////////////////////////////////////////////////////////////////////
 
 // Insert inserts a record to the cache.
 func (tc *typeCache) Insert(now time.Time, name string, it Type) {
@@ -143,16 +163,15 @@ func (tc *typeCache) Get(now time.Time, name string) Type {
 	return entry.inodeType
 }
 
+// A cache that wraps over a TypeCache and
+// prepends every cache entry's name/key with the supplied bucketName
+// for every operation (Insert/Get/Erase).
+//
+// Must be created with NewTypeCacheBucketView only. May be contained in a larger struct.
+// External synchronization is required.
 type typeCacheBucketView struct {
 	sharedTypeCache TypeCache
 	bucketName      string
-}
-
-func NewTypeCacheBucketView(stc TypeCache, bn string) TypeCache {
-	if stc == nil {
-		panic("The passed shared-type-cache is nil")
-	}
-	return &typeCacheBucketView{sharedTypeCache: stc, bucketName: bn}
 }
 
 func (tcbv *typeCacheBucketView) key(name string) string {
@@ -165,6 +184,17 @@ func (tcbv *typeCacheBucketView) key(name string) string {
 ////////////////////////////////////////////////////////////////////////
 // Public interface
 ////////////////////////////////////////////////////////////////////////
+
+// Creates a new typeCacheBucketView wrapping over the
+// given TypeCache and prefix bucketName for prepending
+// in operational keys.
+// This is needed in case of multi-bucket mount (i.e. dynamic-mount).
+func NewTypeCacheBucketView(stc TypeCache, bn string) TypeCache {
+	if stc == nil {
+		panic("The passed shared-type-cache is nil")
+	}
+	return &typeCacheBucketView{sharedTypeCache: stc, bucketName: bn}
+}
 
 // Insert inserts a record to the cache.
 func (tcbv *typeCacheBucketView) Insert(now time.Time, name string, it Type) {
