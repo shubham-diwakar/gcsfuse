@@ -123,8 +123,8 @@ func (t *DirTest) resetInodeWithTypeCacheConfigs(implicitDirs, enableNonexistent
 	t.in.Lock()
 }
 
-func (t *DirTest) getTypeFromCache(name string) Type {
-	return t.tc.Get(t.d.cacheClock.Now(), name)
+func (t *DirTest) getTypeFromCache(basename string) Type {
+	return t.tc.Get(t.d.cacheClock.Now(), path.Join(t.d.name.objectName, basename))
 }
 
 // Read all of the entries and sort them by name.
@@ -445,7 +445,6 @@ func (t *DirTest) LookUpChild_FileAndDirAndImplicitDir_Disabled() {
 	AssertEq(nil, err)
 	AssertNe(nil, result.Object)
 	ExpectEq(ExplicitDirType, t.getTypeFromCache(name))
-	ExpectEq(UnknownType, t.getTypeFromCache(path.Join(dirInodeName, name)))
 
 	ExpectEq(dirObjName, result.FullName.GcsObjectName())
 	ExpectEq(dirObjName, result.Object.Name)
@@ -932,7 +931,6 @@ func (t *DirTest) CreateChildFile_Exists() {
 	_, err = t.in.CreateChildFile(t.ctx, name)
 	ExpectThat(err, Error(HasSubstr("Precondition")))
 	ExpectThat(err, Error(HasSubstr("exists")))
-	ExpectEq(UnknownType, t.getTypeFromCache(name))
 	ExpectEq(UnknownType, t.getTypeFromCache(name))
 }
 
