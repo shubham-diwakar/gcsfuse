@@ -211,6 +211,10 @@ func (t *DirTest) Attributes() {
 	ExpectEq(dirMode|os.ModeDir, attrs.Mode)
 }
 
+func (t *DirTest) IsBaseDirInode() {
+	ExpectEq(false, t.in.IsBaseDirInode())
+}
+
 func (t *DirTest) LookUpChild_NonExistent() {
 	const name = "qux"
 
