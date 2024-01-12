@@ -163,6 +163,8 @@ func NewFileSystem(
 		fileCacheHandler = createFileCacheHandler(cfg)
 	}
 
+	newSharedTypeCache := inode.NewTypeCache(cfg.MountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb, cfg.DirTypeCacheTTL)
+
 	// Set up the basic struct.
 	fs := &fileSystem{
 		mtimeClock:                 mtimeClock,
@@ -189,7 +191,7 @@ func NewFileSystem(
 		mountConfig:                cfg.MountConfig,
 		fileCacheHandler:           fileCacheHandler,
 		cacheFileForRangeRead:      cfg.MountConfig.FileCacheConfig.CacheFileForRangeRead,
-		sharedTypeCache:            inode.NewTypeCache(cfg.MountConfig.MetadataCacheConfig.TypeCacheMaxSizeMb, cfg.DirTypeCacheTTL),
+		sharedTypeCache:            newSharedTypeCache,
 		typeCacheBucketViews:       map[string]inode.TypeCache{},
 	}
 
@@ -201,12 +203,8 @@ func NewFileSystem(
 	} else {
 		logger.Info("Set up root directory for bucket " + cfg.BucketName)
 
-		if _, ok := fs.typeCacheBucketViews[cfg.BucketName]; !ok {
-			logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", cfg.BucketName)
-			fs.typeCacheBucketViews[cfg.BucketName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, "")
-		} else {
-			logger.Tracef("type-cache-bucket-view for bucket %s already exists", cfg.BucketName)
-		}
+		logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", cfg.BucketName)
+		fs.typeCacheBucketViews[cfg.BucketName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, "")
 
 		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName, false)
 		if err != nil {
@@ -950,6 +948,12 @@ func (fs *fileSystem) lookUpOrCreateChildInode(
 
 		core, err := parent.LookUpChild(ctx, childName)
 		if err == nil && parent.IsBaseDirInode() {
+			// This block is specific to multi-bucket mount.
+			// This is creating and inserting (if not already done)
+			// a type-cache-bucket-view for this bucket (called childName)
+			// into the (bucketName -> type-cache-bucket-view') map in fs.
+			// This code comes up when a new bucket is mounted
+			// in dynamic-mount.
 			if _, ok := fs.typeCacheBucketViews[childName]; !ok {
 				logger.Debugf("Creating type-cache-bucket-view for bucket %s ...", childName)
 				fs.typeCacheBucketViews[childName] = inode.NewTypeCacheBucketView(fs.sharedTypeCache, childName)

@@ -60,7 +60,7 @@ type MetadataCacheConfig struct {
 	// no cache and > 0 for ttl-controlled metadata-cache.
 	// Any value set below -1 will throw an error.
 	TtlInSeconds int64 `yaml:"ttl-secs,omitempty"`
-	// TypeCacheMaxEntries is the upper limit
+	// TypeCacheMaxSizeMb is the upper limit
 	// on the maximum size of type-cache map,
 	// which is maintained at gcsfuse-mount-level.
 	TypeCacheMaxSizeMb int `yaml:"type-cache-max-size-mb,omitempty"`

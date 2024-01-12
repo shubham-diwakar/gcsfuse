@@ -84,9 +84,6 @@ type typeCache struct {
 	/////////////////////////
 
 	// A cache mapping names to the cache entry.
-	//
-	// INVARIANT: entries.CheckInvariants() does not panic
-	// INVARIANT: Each value is of type cacheEntry
 	entries *lru.Cache
 }
 
@@ -100,7 +97,7 @@ type typeCache struct {
 func NewTypeCache(sizeInMB int, ttl time.Duration) TypeCache {
 	if ttl > 0 && sizeInMB != 0 {
 		if sizeInMB < -1 {
-			panic("unhandled scenario: type-cache-max-size-mb < -1")
+			panic(fmt.Sprintf("Invalid value for type-cache-max-size-mb: %v", sizeInMB))
 		}
 		var lruSizeInBytesToUse uint64 = math.MaxUint64 // default for when sizeInMb = -1
 		if sizeInMB > 0 {
@@ -196,17 +193,14 @@ func NewTypeCacheBucketView(stc TypeCache, bn string) TypeCache {
 	return &typeCacheBucketView{sharedTypeCache: stc, bucketName: bn}
 }
 
-// Insert inserts a record to the cache.
 func (tcbv *typeCacheBucketView) Insert(now time.Time, name string, it Type) {
 	tcbv.sharedTypeCache.Insert(now, tcbv.key(name), it)
 }
 
-// Erase erases all information about the supplied name.
 func (tcbv *typeCacheBucketView) Erase(name string) {
 	tcbv.sharedTypeCache.Erase(tcbv.key(name))
 }
 
-// Get gets the record for the given name.
 func (tcbv *typeCacheBucketView) Get(now time.Time, name string) Type {
 	return tcbv.sharedTypeCache.Get(now, tcbv.key(name))
 }
