@@ -15,45 +15,45 @@
 package read_cache
 
 import (
-	"context"
-	"log"
-	"testing"
-	"time"
-
 	"cloud.google.com/go/storage"
+	"context"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/client"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/log_parser/json_parser/read_logs"
+	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/operations"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/setup"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/test_setup"
-)
-
-const (
-	MiB             = 1024 * 1024
-	chunkSizeToRead = MiB
-	fileSize        = 3 * MiB
-	chunksRead      = fileSize / MiB
-	testFileName    = "foo"
+	"log"
+	"path"
+	"strings"
+	"testing"
+	"time"
 )
 
 ////////////////////////////////////////////////////////////////////////
 // Boilerplate
 ////////////////////////////////////////////////////////////////////////
-
-type testStruct struct {
+type readAfterLocalWrite struct {
 	flags         []string
 	storageClient *storage.Client
 	ctx           context.Context
 }
 
-func (s *testStruct) Setup(t *testing.T) {
+func (s *readAfterLocalWrite) Setup(t *testing.T) {
 	mountBucket(s.flags,t)
 
 	setup.SetMntDir(mountDir)
-	testDirPath = client.SetupTestDirectory(s.ctx, s.storageClient, testDirName)
-	client.SetupFileInTestDirectory(s.ctx, s.storageClient, testDirName, testFileName, fileSize, t)
+
+	testDirPath := path.Join(setup.TestDir(),testDirName)
+	operations.CreateDirectory(testDirPath,t)
+	randomData, err := operations.GenerateRandomData(fileSize)
+	randomDataString := strings.Trim(string(randomData), "\x00")
+	if err != nil {
+		t.Errorf("operations.GenerateRandomData: %v", err)
+	}
+	operations.CreateFileWithContent(path.Join(testDirPath,testFileName),setup.FilePermission_0600,randomDataString,t)
 }
 
-func (s *testStruct) Teardown(t *testing.T) {
+func (s *readAfterLocalWrite) Teardown(t *testing.T) {
 	unmountAndDeleteLogFile()
 }
 
@@ -61,7 +61,7 @@ func (s *testStruct) Teardown(t *testing.T) {
 // Test scenarios
 ////////////////////////////////////////////////////////////////////////
 
-func (s *testStruct) TestSecondSequentialReadIsCacheHit(t *testing.T) {
+func (s *readAfterLocalWrite) TestReadAfterLocalWriteIsCacheMiss(t *testing.T) {
 	// Read file 1st time.
 	expectedOutcome1 := readFileAndGetExpectedOutcome(testDirPath, testFileName, t)
 	validateFileInCacheDirectory(s.ctx,s.storageClient,t)
@@ -79,11 +79,12 @@ func (s *testStruct) TestSecondSequentialReadIsCacheHit(t *testing.T) {
 	validate(expectedOutcome2, structuredReadLogs[1], true, true, chunksRead, t)
 }
 
+
 ////////////////////////////////////////////////////////////////////////
 // Test Function (Runs once before all tests)
 ////////////////////////////////////////////////////////////////////////
 
-func Test(t *testing.T) {
+func TestReadAfterLocalWrite(t *testing.T) {
 	// Define flag set to run the tests.
 	mountConfigFilePath := createConfigFile(9)
 	flagSet := [][]string{
@@ -113,9 +114,6 @@ func Test(t *testing.T) {
 	for _, flags := range flagSet {
 		// Run tests without ro flag.
 		ts.flags = flags
-		test_setup.RunTests(t, ts)
-		// Run tests with ro flag.
-		ts.flags = append(flags, "--o=ro")
 		test_setup.RunTests(t, ts)
 	}
 }

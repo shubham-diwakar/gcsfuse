@@ -15,6 +15,7 @@
 package read_cache
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -42,6 +43,32 @@ var (
 	// root directory is the directory to be unmounted.
 	rootDir string
 )
+
+func unmountAndDeleteLogFile(){
+	// unmount gcsfuse
+	setup.SetMntDir(rootDir)
+	if setup.MountedDirectory() == "" {
+		// Unmount GCSFuse only when tests are not running on mounted directory.
+		err := setup.UnMount()
+		if err != nil {
+			setup.LogAndExit(fmt.Sprintf("Error in unmounting bucket: %v", err))
+		}
+		// delete log file created
+		err = os.Remove(setup.LogFile())
+		if err != nil {
+			setup.LogAndExit(fmt.Sprintf("Error in deleting log file: %v", err))
+		}
+	}
+}
+
+func mountBucket(flags []string, t *testing.T){
+	if setup.MountedDirectory() == "" {
+		// Mount GCSFuse only when tests are not running on mounted directory.
+		if err := mountFunc(flags); err != nil {
+			t.Errorf("Failed to mount GCSFuse: %v", err)
+		}
+	}
+}
 
 func createConfigFile(cacheSize int64) string {
 	cacheLocationPath = path.Join(setup.TestDir(), "cache-dir")
