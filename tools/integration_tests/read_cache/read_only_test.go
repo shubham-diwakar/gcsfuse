@@ -15,16 +15,15 @@
 package read_cache
 
 import (
-	"context"
-	"log"
-	"testing"
-	"time"
-
 	"cloud.google.com/go/storage"
+	"context"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/client"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/log_parser/json_parser/read_logs"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/setup"
 	"github.com/googlecloudplatform/gcsfuse/tools/integration_tests/util/test_setup"
+	"log"
+	"testing"
+	"time"
 )
 
 const (
@@ -94,7 +93,6 @@ func Test(t *testing.T) {
 	// Create storage client before running tests.
 	var err error
 	ts := &testStruct{}
-	ts.ctx = context.Background()
 	ctx, cancel := context.WithTimeout(ts.ctx, time.Minute*15)
 	ts.storageClient, err = client.CreateStorageClient(ctx)
 	if err != nil {
@@ -108,6 +106,7 @@ func Test(t *testing.T) {
 		}
 		defer cancel()
 	}()
+
 
 	// Run tests.
 	for _, flags := range flagSet {

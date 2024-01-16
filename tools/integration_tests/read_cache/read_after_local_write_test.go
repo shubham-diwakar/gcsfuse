@@ -43,7 +43,11 @@ func (s *readAfterLocalWrite) Setup(t *testing.T) {
 
 	setup.SetMntDir(mountDir)
 
-	testDirPath := path.Join(setup.TestDir(),testDirName)
+	err := client.DeleteAllObjectsWithPrefix(s.ctx, s.storageClient, path.Join(setup.OnlyDirMounted(), testDirName))
+	if err != nil {
+		log.Printf("Failed to clean up test directory: %v", err)
+	}
+
 	operations.CreateDirectory(testDirPath,t)
 	randomData, err := operations.GenerateRandomData(fileSize)
 	randomDataString := strings.Trim(string(randomData), "\x00")
@@ -65,18 +69,29 @@ func (s *readAfterLocalWrite) TestReadAfterLocalWriteIsCacheMiss(t *testing.T) {
 	// Read file 1st time.
 	expectedOutcome1 := readFileAndGetExpectedOutcome(testDirPath, testFileName, t)
 	validateFileInCacheDirectory(s.ctx,s.storageClient,t)
-	// Read file 2nd time.
-	expectedOutcome2 := readFileAndGetExpectedOutcome(testDirPath, testFileName, t)
 
 	// Validate that the content read by read operation matches content on GCS.
 	client.ValidateObjectContentsFromGCS(s.ctx, s.storageClient, testDirName, testFileName,
 		expectedOutcome1.content, t)
+
+	appendData := "Hello, World!!"
+	err := operations.WriteFileInAppendMode(path.Join(testDirPath,testFileName),appendData)
+	if err != nil{
+		t.Errorf("Error in appending data in file: %v",err)
+	}
+
+	// Read file 2nd time.
+	expectedOutcome2 := readFileAndGetExpectedOutcome(testDirPath, testFileName, t)
+	validateFileInCacheDirectory(s.ctx,s.storageClient,t)
+
+	// Validate that the content read by read operation matches content on GCS.
 	client.ValidateObjectContentsFromGCS(s.ctx, s.storageClient, testDirName, testFileName,
 		expectedOutcome2.content, t)
+
 	// Parse the log file and validate cache hit or miss from the structured logs.
 	structuredReadLogs := read_logs.GetStructuredLogsSortedByTimestamp(setup.LogFile(), t)
 	validate(expectedOutcome1, structuredReadLogs[0], true, false, chunksRead, t)
-	validate(expectedOutcome2, structuredReadLogs[1], true, true, chunksRead, t)
+	validate(expectedOutcome2, structuredReadLogs[1], true, false, chunksRead + 1, t)
 }
 
 
@@ -92,9 +107,11 @@ func TestReadAfterLocalWrite(t *testing.T) {
 		{"--implicit-dirs=false", "--config-file=" + mountConfigFilePath},
 	}
 
+	testDirPath = path.Join(setup.MntDir(),testDirName)
+
 	// Create storage client before running tests.
 	var err error
-	ts := &testStruct{}
+	ts := &readAfterLocalWrite{}
 	ts.ctx = context.Background()
 	ctx, cancel := context.WithTimeout(ts.ctx, time.Minute*15)
 	ts.storageClient, err = client.CreateStorageClient(ctx)
@@ -109,6 +126,7 @@ func TestReadAfterLocalWrite(t *testing.T) {
 		}
 		defer cancel()
 	}()
+
 
 	// Run tests.
 	for _, flags := range flagSet {

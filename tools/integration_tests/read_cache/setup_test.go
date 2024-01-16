@@ -70,6 +70,7 @@ func mountBucket(flags []string, t *testing.T){
 	}
 }
 
+
 func createConfigFile(cacheSize int64) string {
 	cacheLocationPath = path.Join(setup.TestDir(), "cache-dir")
 
