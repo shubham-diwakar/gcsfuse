@@ -552,6 +552,7 @@ func (d *dirInode) readObjects(
 		// Setting Projection param to noAcl since fetching owner and acls are not
 		// required.
 		ProjectionVal: gcs.NoAcl,
+		IncludeFoldersAsPrefixes: true,
 	}
 
 	listing, err := d.bucket.ListObjects(ctx, req)
