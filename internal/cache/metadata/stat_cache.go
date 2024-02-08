@@ -15,10 +15,12 @@
 package metadata
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
 	"github.com/googlecloudplatform/gcsfuse/internal/storage/gcs"
+	"github.com/streamonkey/size"
 )
 
 // A cache mapping from name to most recent known record for the object of that
@@ -85,6 +87,8 @@ type entry struct {
 // It is currently set to dummy value 1 to avoid
 // the unnecessary actual size calculation.
 func (e entry) Size() uint64 {
+	sz := size.Of(e)
+	fmt.Println(sz)
 	return 1
 }
 

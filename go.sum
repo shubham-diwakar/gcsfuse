@@ -228,8 +228,6 @@ github.com/jacobsa/syncutil v0.0.0-20180201203307-228ac8e5a6c3 h1:+gHfvQxomE6fI4
 github.com/jacobsa/syncutil v0.0.0-20180201203307-228ac8e5a6c3/go.mod h1:mPvulh9VKXvo+yOlrD4VYOOYuLdZJ36wa/5QIrtXvWs=
 github.com/jacobsa/timeutil v0.0.0-20170205232429-577e5acbbcf6 h1:XKHJmHcgU9glxk3eLPiRZT5VFSHJitVTnMj/EgIoXC4=
 github.com/jacobsa/timeutil v0.0.0-20170205232429-577e5acbbcf6/go.mod h1:JEWKD6V8xETMW+DEv+IQVz++f8Cn8O/X0HPeDY3qNis=
-github.com/jacobsa/util v0.0.0-20150810040848-976a6f4de67e h1:BegecLAVSx5IW1bOImB8Lt6+4yiWP4t+PUeckWYzIeg=
-github.com/jacobsa/util v0.0.0-20150810040848-976a6f4de67e/go.mod h1:q0HiLetNeSPHjs8ddOw9U6xahog8xR7WPp6PhzJ6wmk=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGwWFoC7ycTf1rcQZHOlsJ6N8=
@@ -261,6 +259,8 @@ github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeV
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
+github.com/streamonkey/size v0.0.1 h1:EekmLGamtdYhhnILsrtg8vFn0riRcTmF4A62xq6HThU=
+github.com/streamonkey/size v0.0.1/go.mod h1:0pz0OLVpcT12gGr0krZz5wga3IgAheGuRu9qOyUR/HE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
