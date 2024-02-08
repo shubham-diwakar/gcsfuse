@@ -151,7 +151,8 @@ func (c *Cache) Insert(
 		return nil, errors.New(InvalidEntryErrorMsg)
 	}
 
-	if value.Size() > c.maxSize {
+	sz := value.Size()
+	if sz > c.maxSize {
 		return nil, errors.New(InvalidEntrySizeErrorMsg)
 	}
 
@@ -169,7 +170,7 @@ func (c *Cache) Insert(
 		// Add the entry if already doesn't exist.
 		e := c.entries.PushFront(entry{key, value})
 		c.index[key] = e
-		c.currentSize += value.Size()
+		c.currentSize += sz
 	}
 
 	var evictedValues []ValueType

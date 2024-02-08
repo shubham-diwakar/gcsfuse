@@ -15,7 +15,6 @@
 package metadata
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/internal/cache/lru"
@@ -87,9 +86,7 @@ type entry struct {
 // It is currently set to dummy value 1 to avoid
 // the unnecessary actual size calculation.
 func (e entry) Size() uint64 {
-	sz := size.Of(e)
-	fmt.Println(sz)
-	return 1
+	return uint64(size.Of(e))
 }
 
 // Should the supplied object for a new positive entry replace the given
