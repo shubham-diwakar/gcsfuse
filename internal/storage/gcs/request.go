@@ -276,6 +276,8 @@ type ListObjectsRequest struct {
 	// using this param.
 	ProjectionVal Projection
 
+	// IncludeFoldersAsPrefixes includes Folders and Managed Folders in the set of
+	// prefixes returned by the query.
 	IncludeFoldersAsPrefixes bool
 }
 

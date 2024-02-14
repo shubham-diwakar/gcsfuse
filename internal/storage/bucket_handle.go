@@ -242,16 +242,14 @@ func getProjectionValue(req gcs.Projection) storage.Projection {
 func (b *bucketHandle) ListObjects(ctx context.Context, req *gcs.ListObjectsRequest) (listing *gcs.Listing, err error) {
 	// Converting *ListObjectsRequest to type *storage.Query as expected by the Go Storage Client.
 	query := &storage.Query{
-		Delimiter:                req.Delimiter,
+		//Delimiter:                req.Delimiter,
 		Prefix:                   req.Prefix,
 		Projection:               getProjectionValue(req.ProjectionVal),
 		IncludeTrailingDelimiter: req.IncludeTrailingDelimiter,
 		IncludeFoldersAsPrefixes: req.IncludeFoldersAsPrefixes,
 		//MaxResults: , (Field not present in storage.Query of Go Storage Library but present in ListObjectsQuery in Jacobsa code.)
 	}
-	//if req.Delimiter == "/"{
-	//
-	//}
+
 	itr := b.bucket.Objects(ctx, query) // Returning iterator to the list of objects.
 	pi := itr.PageInfo()
 	pi.MaxSize = req.MaxResults
