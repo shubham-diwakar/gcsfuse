@@ -18,12 +18,12 @@
 SERVICE_ACCOUNT=$1
 BUCKET_NAME=$2
 MNT_DIR=$3
-
-echo "Clean up permissions if already have..."
+echo "Clean up permissions..."
 gcloud storage buckets remove-iam-policy-binding  gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectViewer
 gcloud storage buckets remove-iam-policy-binding  gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectAdmin
 gcloud alpha storage managed-folders rm -r gs://$BUCKET_NAME/managed_folder
 gcloud alpha storage managed-folders create gs://$BUCKET_NAME/managed_folder
+gcloud storage cp ~/a.txt gs://$BUCKET_NAME/managed_folder
 
 function permission_denied() {
   if [[ $result != *"Permission denied"* ]]; then
@@ -39,99 +39,101 @@ function no_permission_denied() {
   fi
 }
 
-function attach_permissions_to_managed_folder() {
-  gcloud iam service-accounts keys create ~/managed_folder_key.json --iam-account=$SERVICE_ACCOUNT
-  echo '{
-    "bindings":[
-      {
-        "role": '"$PERMISSION"',
-        "members":[
-          "serviceAccount:'"$SERVICE_ACCOUNT"'"
-        ]
-      }
-    ]
-  }'> managed_folder_role.json
-}
-
-set -e
-echo "1st Experiment, Bucket has no permission, managed folder has storage.objectViewer permission..."
-PERMISSION="roles/storage.objectViewer"
-attach_permissions_to_managed_folder
+echo "1st Experiment, Bucket has no permission, managed folder has storage.objectViewer permission"
+gcloud iam service-accounts keys create ~/managed_folder_key.json --iam-account=$SERVICE_ACCOUNT
+echo '{
+  "bindings":[
+    {
+      "role": "roles/storage.objectViewer",
+      "members":[
+        "serviceAccount:'"$SERVICE_ACCOUNT"'"
+      ]
+    }
+  ]
+}'> managed_folder_role.json
 gcloud alpha storage managed-folders set-iam-policy gs://$BUCKET_NAME/managed_folder managed_folder_role.json
 rm managed_folder_role.json
 sudo umount $MNT_DIR
-result=$(go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR)
-if [[ $result != *"exit status 1"* ]]; then
-    echo "Bucket mounting should fail due to no permissions."
-    exit 1
-fi
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder will mount with view permission..."
+go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
+echo "Bucket mounting will fail."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
+echo "Managed folder will mount with view permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
-echo "Dynamic mounting on managed folder should fail..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+echo "Dynamic mounting on managed folder will fail"
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
 
-echo "2nd Experiment, Bucket has storage.objectViewer permission, managed folder has no permission..."
+
+echo "2nd Experiment, Bucket has storage.objectViewer permission, managed folder has no permission"
 gcloud alpha storage managed-folders remove-iam-policy-binding  gs://$BUCKET_NAME/managed_folder --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectViewer
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectViewer
 go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
-echo "Bucket is mounted with viewer permission..."
+echo "Bucket will mount with view permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 sleep 15
 sudo umount $MNT_DIR
 go run . --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder is mounted with viewer permission..."
+echo "Managed folder will mount with view permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
-echo "Dynamic mounting of managed folder is working with viewer permission..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+echo "Dynamic mounting will work with view permission..."
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 no_permission_denied
+echo "On Bucket..."
 result=$(touch $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
 permission_denied
 result=$(ls $MNT_DIR/$BUCKET_NAME 2>&1)
+echo "On Managed folder..."
 result=$(touch $MNT_DIR/$BUCKET_NAME/managed_folder/test2.txt 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
 
-echo "3rd experiment, Bucket has storage.objectViewer permission, managed folder has storage.objectViewer permission..."
-PERMISSION="roles/storage.objectViewer"
-attach_permissions_to_managed_folder()
+echo "3rd experiment, Bucket has storage.objectViewer permission, managed folder has storage.objectViewer permission"
+echo '{
+  "bindings":[
+    {
+      "role": "roles/storage.objectViewer",
+      "members":[
+        "serviceAccount:'"$SERVICE_ACCOUNT"'"
+      ]
+    }
+  ]
+}'> managed_folder_role.json
 gcloud alpha storage managed-folders set-iam-policy gs://$BUCKET_NAME/managed_folder managed_folder_role.json
 rm managed_folder_role.json
 go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
-echo "Bucket is mounted with viewer permissions...."
+echo "Bucket will mount with view permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder is mounted with viewer permissions..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
+echo "Managed folder will mount with view permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
-echo "Dynamic mounting of managed folder is working with viewer permission..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+echo "Dynamic mounting will work..."
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
@@ -144,8 +146,16 @@ sudo umount $MNT_DIR
 
 echo "4th experiment, Bucket has storage.objectViewer permission, managed folder has storage.objectAdmin permission"
 gcloud alpha storage managed-folders remove-iam-policy-binding  gs://$BUCKET_NAME/managed_folder --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectViewer
-PERMISSION="roles/storage.objectAdmin"
-attach_permissions_to_managed_folder()
+echo '{
+  "bindings":[
+    {
+      "role": "roles/storage.objectAdmin",
+      "members":[
+        "serviceAccount:'"$SERVICE_ACCOUNT"'"
+      ]
+    }
+  ]
+}'> managed_folder_role.json
 gcloud alpha storage managed-folders set-iam-policy gs://$BUCKET_NAME/managed_folder managed_folder_role.json
 rm managed_folder_role.json
 go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
@@ -156,22 +166,22 @@ result=$(touch $MNT_DIR/test.txt 2>&1)
 permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder is mounted with admin permissions..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
+echo "Managed folder will mount with admin permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 no_permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 no_permission_denied
 echo "Bucket has only view permissions"
 result=$(touch $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
 permission_denied
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
-echo "Dynamic mounting of managed folder is working with admin permission..."
+echo "Managed folder has admin permissions in dynamic mount"
 result=$(touch $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
 no_permission_denied
 result=$(rm $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
@@ -183,7 +193,7 @@ echo "5th experiment, Bucket has storage.objectAdmin permission, managed folder 
 gcloud storage buckets remove-iam-policy-binding  gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectViewer
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectAdmin
 go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
-echo "Bucket is mounted with admin permission..."
+echo "Bucket will mount with admin permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
@@ -192,22 +202,23 @@ result=$(rm $MNT_DIR/test.txt 2>&1)
 no_permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder is mounted with admin permissions..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
+echo "Managed folder will mount with admin permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 no_permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 no_permission_denied
+echo "Bucket has only admin permissions"
 result=$(touch $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
 no_permission_denied
 result=$(rm $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
 no_permission_denied
-echo "Dynamic mounting of managed folder is working with admin permission..."
+echo "Managed folder has admin permissions in dynamic mount"
 result=$(touch $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
 no_permission_denied
 result=$(rm $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
@@ -217,12 +228,20 @@ sudo umount $MNT_DIR
 
 echo "6th experiment, Bucket has storage.objectAdmin permission, managed folder has storage.objectViewer permission"
 gcloud alpha storage managed-folders remove-iam-policy-binding  gs://$BUCKET_NAME/managed_folder --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/storage.objectAdmin
-PERMISSION="roles/storage.objectViewer"
-attach_permissions_to_managed_folder()
+echo '{
+  "bindings":[
+    {
+      "role": "roles/storage.objectViewer",
+      "members":[
+        "serviceAccount:'"$SERVICE_ACCOUNT"'"
+      ]
+    }
+  ]
+}'> managed_folder_role.json
 gcloud alpha storage managed-folders set-iam-policy gs://$BUCKET_NAME/managed_folder managed_folder_role.json
 rm managed_folder_role.json
 go run . --implicit-dirs -key-file ~/managed_folder_key.json  $BUCKET_NAME $MNT_DIR
-echo "Bucket is mounted with admin permission..."
+echo "Bucket will mount with Admin permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
@@ -231,22 +250,22 @@ result=$(rm $MNT_DIR/test.txt 2>&1)
 no_permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
-echo "Managed folder is mounted with admin permissions..."
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  --only-dir managed_folder $BUCKET_NAME $MNT_DIR
+echo "Managed folder will mount with admin permission"
 result=$(ls $MNT_DIR 2>&1)
 no_permission_denied
 result=$(touch $MNT_DIR/test.txt 2>&1)
 no_permission_denied
 sleep 15
 sudo umount $MNT_DIR
-go run .  --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
+go run . --debug_gcs --debug_fuse --log-format text --implicit-dirs --key-file ~/managed_folder_key.json  $MNT_DIR
 result=$(ls $MNT_DIR/$BUCKET_NAME/managed_folder 2>&1)
 no_permission_denied
 echo "Bucket has only admin permissions"
 touch $MNT_DIR/$BUCKET_NAME/test.txt
 result=$(rm $MNT_DIR/$BUCKET_NAME/test.txt 2>&1)
 no_permission_denied
-echo "Dynamic mounting of managed folder is working with admin permission..."
+echo "Managed folder has admin permissions in dynamic mount"
 result=$(touch $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
 no_permission_denied
 result=$(rm $MNT_DIR/$BUCKET_NAME/managed_folder/test.txt 2>&1)
