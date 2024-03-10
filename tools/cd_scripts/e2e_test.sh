@@ -18,6 +18,9 @@ set -x
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+readonly INTEGRATION_TEST_TIMEOUT=40m
+readonly PROJECT_ID="gcs-fuse-test"
+readonly BUCKET_LOCATION="us-west1"
 #details.txt file contains the release version and commit hash of the current release.
 gsutil cp  gs://gcsfuse-release-packages/version-detail/details.txt .
 # Writing VM instance name to details.txt (Format: release-test-<os-name>)
@@ -137,11 +140,116 @@ fi
 
 git checkout $(sed -n 2p ~/details.txt) |& tee -a ~/logs.txt
 
-#run tests with testbucket flag
-set +e
-GODEBUG=asyncpreemptoff=1 CGO_ENABLED=0 go test ./tools/integration_tests/... -p 1 --integrationTest -v --testbucket=$(sed -n 3p ~/details.txt) --testInstalledPackage --timeout=60m &>> ~/logs.txt
+# Create bucket for integration tests.
+function create_bucket() {
+  # The length of the random string
+  length=5
+  # Generate the random string
+  random_string=$(tr -dc 'a-z0-9' < /dev/urandom | head -c $length)
+  BUCKET_NAME=$bucketPrefix$random_string
+  echo 'bucket name = '$BUCKET_NAME
+  # We are using gcloud alpha because gcloud storage is giving issues running on Kokoro
+  gcloud alpha storage buckets create gs://$BUCKET_NAME --project=$PROJECT_ID --location=$BUCKET_LOCATION --uniform-bucket-level-access
+  return
+}
 
-if [ $? -ne 0 ];
+#run tests with testbucket flag
+function run_non_parallel_tests() {
+  for test_dir_np in "${test_dir_non_parallel[@]}"
+  do
+    test_path_non_parallel="./tools/integration_tests/$test_dir_np"
+    # Executing integration tests
+    GODEBUG=asyncpreemptoff=1 go test $test_path_non_parallel -p 1 --integrationTest -v --testbucket=$BUCKET_NAME_NON_PARALLEL --testInstalledPackage=true -timeout 40m
+    exit_code_non_parallel=$?
+    if [ $exit_code_non_parallel != 0 ]; then
+      test_fail_np=$exit_code_non_parallel
+      echo "test fail in non parallel: " $test_fail_np
+    fi
+  done
+  return $test_fail_np
+}
+
+function run_parallel_tests() {
+  for test_dir_p in "${test_dir_parallel[@]}"
+  do
+    test_path_parallel="./tools/integration_tests/$test_dir_p"
+    # Executing integration tests
+    GODEBUG=asyncpreemptoff=1 go test $test_path_parallel -p 1 --integrationTest -v --testbucket=$BUCKET_NAME_PARALLEL --testInstalledPackage=true -timeout 40m &
+    pid=$!  # Store the PID of the background process
+    pids+=("$pid")  # Optionally add the PID to an array for later
+  done
+
+  # Wait for processes and collect exit codes
+  for pid in "${pids[@]}"; do
+    wait $pid
+    exit_code_parallel=$?
+    if [ $exit_code_parallel != 0 ]; then
+      test_fail_p=$exit_code_parallel
+      echo "test fail in parallel: " $test_fail_p
+    fi
+  done
+  return $test_fail_p
+}
+
+# Test setup
+# Create Bucket for non parallel e2e tests
+# The bucket prefix for the random string
+bucketPrefix="gcsfuse-non-parallel-e2e-tests-"
+create_bucket
+BUCKET_NAME_NON_PARALLEL=$BUCKET_NAME
+# Test directory array
+test_dir_non_parallel=(
+  "explicit_dir"
+  "implicit_dir"
+  "list_large_dir"
+  "operations"
+  "read_large_files"
+  "readonly"
+  "rename_dir_limit"
+  "managed_folders"
+)
+
+# Create Bucket for parallel e2e tests
+# The bucket prefix for the random string
+bucketPrefix="gcsfuse-parallel-e2e-tests-"
+create_bucket
+BUCKET_NAME_PARALLEL=$BUCKET_NAME
+# Test directory array
+test_dir_parallel=(
+  "local_file"
+  "log_rotation"
+  "mounting"
+  "read_cache"
+  "gzip"
+  "write_large_files"
+)
+
+
+# Run tests
+test_fail_p=0
+test_fail_np=0
+set +e
+
+echo "Running parallel tests..."
+# Run parallel tests
+run_parallel_tests &
+my_process_p=$!
+echo "Running non parallel tests..."
+# Run non parallel tests
+run_non_parallel_tests &
+my_process_np=$!
+wait $my_process_p
+test_fail_p=$?
+wait $my_process_np
+test_fail_np=$?
+set -e
+
+# Cleanup
+# Delete bucket after testing.
+gcloud alpha storage rm --recursive gs://$BUCKET_NAME_PARALLEL/
+gcloud alpha storage rm --recursive gs://$BUCKET_NAME_NON_PARALLEL/
+
+if [ $test_fail_np != 0 ] || [ $test_fail_p != 0 ];
 then
     echo "Test failures detected" &>> ~/logs.txt
 else
