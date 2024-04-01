@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"github.com/jacobsa/fuse"
 
@@ -58,6 +59,16 @@ type baseDirInode struct {
 
 	// GUARDED_BY(mu)
 	buckets map[string]gcsx.SyncerBucket
+}
+
+func (d *baseDirInode) UpdateCacheWithChildNode(ctx context.Context, name string, src *gcs.MinObject) (*Core, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *baseDirInode) RenameFolder(ctx context.Context, name Name, destinationFolderId string) (o *controlpb.Folder, err error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // NewBaseDirInode returns a baseDirInode that acts as the directory of

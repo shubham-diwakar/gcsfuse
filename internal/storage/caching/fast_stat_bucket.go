@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/cache/metadata"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/storageutil"
@@ -65,6 +67,11 @@ type fastStatBucket struct {
 	/////////////////////////
 
 	ttl time.Duration
+}
+
+func (b *fastStatBucket) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 ////////////////////////////////////////////////////////////////////////

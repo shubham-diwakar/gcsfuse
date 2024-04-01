@@ -20,6 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"golang.org/x/net/context"
@@ -224,4 +226,10 @@ func (b *debugBucket) DeleteObject(
 
 	err = b.wrapped.DeleteObject(ctx, req)
 	return
+}
+
+func (b *debugBucket) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+
+	//TODO implement me
+	panic("implement me")
 }

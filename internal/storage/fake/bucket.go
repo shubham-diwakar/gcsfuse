@@ -27,10 +27,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/storageutil"
 	"github.com/jacobsa/syncutil"
 	"github.com/jacobsa/timeutil"
+	context2 "golang.org/x/net/context"
 )
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
@@ -140,6 +143,12 @@ type bucket struct {
 	prevGeneration int64 // GUARDED_BY(mu)
 }
 
+func (b *bucket) RenameFolder(ctx context2.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+
+	//TODO implement me
+	panic("implement me")
+}
+
 func checkName(name string) (err error) {
 	if len(name) == 0 || len(name) > 1024 {
 		err = errors.New("Invalid object name: length must be in [1, 1024]")
@@ -192,8 +201,8 @@ func (b *bucket) checkInvariants() {
 //
 // LOCKS_REQUIRED(b.mu)
 func (b *bucket) mintObject(
-	req *gcs.CreateObjectRequest,
-	contents []byte) (o fakeObject) {
+		req *gcs.CreateObjectRequest,
+		contents []byte) (o fakeObject) {
 	md5Sum := md5.Sum(contents)
 	crc32c := crc32.Checksum(contents, crc32cTable)
 
@@ -226,7 +235,7 @@ func (b *bucket) mintObject(
 
 // LOCKS_REQUIRED(b.mu)
 func (b *bucket) createObjectLocked(
-	req *gcs.CreateObjectRequest) (o *gcs.Object, err error) {
+		req *gcs.CreateObjectRequest) (o *gcs.Object, err error) {
 	// Check that the name is legal.
 	err = checkName(req.Name)
 	if err != nil {
@@ -347,7 +356,7 @@ func (b *bucket) createObjectLocked(
 //
 // LOCKS_REQUIRED(b.mu)
 func (b *bucket) newReaderLocked(
-	req *gcs.ReadObjectRequest) (r io.Reader, index int, err error) {
+		req *gcs.ReadObjectRequest) (r io.Reader, index int, err error) {
 	// Find the object with the requested name.
 	index = b.objects.find(req.Name)
 	if index == len(b.objects) {
@@ -437,8 +446,8 @@ func (b *bucket) Name() string {
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) ListObjects(
-	ctx context.Context,
-	req *gcs.ListObjectsRequest) (listing *gcs.Listing, err error) {
+		ctx context.Context,
+		req *gcs.ListObjectsRequest) (listing *gcs.Listing, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -486,7 +495,7 @@ func (b *bucket) ListObjects(
 				// Save the result, but only if it's not a duplicate.
 				resultPrefix := name[:resultPrefixLimit]
 				if len(listing.CollapsedRuns) == 0 ||
-					listing.CollapsedRuns[len(listing.CollapsedRuns)-1] != resultPrefix {
+						listing.CollapsedRuns[len(listing.CollapsedRuns)-1] != resultPrefix {
 					listing.CollapsedRuns = append(listing.CollapsedRuns, resultPrefix)
 				}
 
@@ -535,8 +544,8 @@ func (b *bucket) ListObjects(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) NewReader(
-	ctx context.Context,
-	req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
+		ctx context.Context,
+		req *gcs.ReadObjectRequest) (rc io.ReadCloser, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -551,8 +560,8 @@ func (b *bucket) NewReader(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) CreateObject(
-	ctx context.Context,
-	req *gcs.CreateObjectRequest) (o *gcs.Object, err error) {
+		ctx context.Context,
+		req *gcs.CreateObjectRequest) (o *gcs.Object, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -562,8 +571,8 @@ func (b *bucket) CreateObject(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) CopyObject(
-	ctx context.Context,
-	req *gcs.CopyObjectRequest) (o *gcs.Object, err error) {
+		ctx context.Context,
+		req *gcs.CopyObjectRequest) (o *gcs.Object, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -585,7 +594,7 @@ func (b *bucket) CopyObject(
 
 	// Does it have the correct generation?
 	if req.SrcGeneration != 0 &&
-		b.objects[srcIndex].metadata.Generation != req.SrcGeneration {
+			b.objects[srcIndex].metadata.Generation != req.SrcGeneration {
 		err = &gcs.NotFoundError{
 			Err: fmt.Errorf(
 				"Object %s generation %d not found", req.SrcName, req.SrcGeneration),
@@ -633,8 +642,8 @@ func (b *bucket) CopyObject(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) ComposeObjects(
-	ctx context.Context,
-	req *gcs.ComposeObjectsRequest) (o *gcs.Object, err error) {
+		ctx context.Context,
+		req *gcs.ComposeObjectsRequest) (o *gcs.Object, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -708,7 +717,7 @@ func (b *bucket) ComposeObjects(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) StatObject(ctx context.Context,
-	req *gcs.StatObjectRequest) (m *gcs.MinObject, e *gcs.ExtendedObjectAttributes, err error) {
+		req *gcs.StatObjectRequest) (m *gcs.MinObject, e *gcs.ExtendedObjectAttributes, err error) {
 	// If ExtendedObjectAttributes are requested without fetching from gcs enabled, panic.
 	if !req.ForceFetchFromGcs && req.ReturnExtendedObjectAttributes {
 		panic("invalid StatObjectRequest: ForceFetchFromGcs: false and ReturnExtendedObjectAttributes: true")
@@ -737,8 +746,8 @@ func (b *bucket) StatObject(ctx context.Context,
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) UpdateObject(
-	ctx context.Context,
-	req *gcs.UpdateObjectRequest) (o *gcs.Object, err error) {
+		ctx context.Context,
+		req *gcs.UpdateObjectRequest) (o *gcs.Object, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -768,7 +777,7 @@ func (b *bucket) UpdateObject(
 
 	// Does the meta-generation precondition check out?
 	if req.MetaGenerationPrecondition != nil &&
-		obj.MetaGeneration != *req.MetaGenerationPrecondition {
+			obj.MetaGeneration != *req.MetaGenerationPrecondition {
 		err = &gcs.PreconditionError{
 			Err: fmt.Errorf(
 				"Object %q has meta-generation %d",
@@ -824,8 +833,8 @@ func (b *bucket) UpdateObject(
 
 // LOCKS_EXCLUDED(b.mu)
 func (b *bucket) DeleteObject(
-	ctx context.Context,
-	req *gcs.DeleteObjectRequest) (err error) {
+		ctx context.Context,
+		req *gcs.DeleteObjectRequest) (err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -837,7 +846,7 @@ func (b *bucket) DeleteObject(
 
 	// Don't do anything if the generation is wrong.
 	if req.Generation != 0 &&
-		b.objects[index].metadata.Generation != req.Generation {
+			b.objects[index].metadata.Generation != req.Generation {
 		return
 	}
 

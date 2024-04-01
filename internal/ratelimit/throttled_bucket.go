@@ -17,6 +17,8 @@ package ratelimit
 import (
 	"io"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"golang.org/x/net/context"
 )
@@ -199,4 +201,10 @@ func (rc *readerCloser) Read(p []byte) (n int, err error) {
 func (rc *readerCloser) Close() (err error) {
 	err = rc.Closer.Close()
 	return
+}
+
+func (b *throttledBucket) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+
+	//TODO implement me
+	panic("implement me")
 }

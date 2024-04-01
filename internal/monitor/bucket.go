@@ -20,6 +20,8 @@ import (
 	"io"
 	"time"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/monitor/tags"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
@@ -235,4 +237,11 @@ func (mrc *monitoringReadCloser) Close() (err error) {
 	}
 	recordReader(mrc.ctx, "closed")
 	return
+}
+
+func (mb *monitoringBucket) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+	startTime := time.Now()
+	listing, err := mb.wrapped.RenameFolder(ctx, req)
+	recordRequest(ctx, "ListObjects", startTime)
+	return listing, err
 }

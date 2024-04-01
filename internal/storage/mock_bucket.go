@@ -12,6 +12,8 @@ import (
 	runtime "runtime"
 	unsafe "unsafe"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	oglemock "github.com/jacobsa/oglemock"
 	context "golang.org/x/net/context"
@@ -25,6 +27,11 @@ type MockBucket interface {
 type mockBucket struct {
 	controller  oglemock.Controller
 	description string
+}
+
+func (m *mockBucket) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewMockBucket(
