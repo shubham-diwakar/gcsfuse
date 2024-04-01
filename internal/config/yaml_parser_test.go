@@ -47,6 +47,7 @@ func validateDefaultConfig(mountConfig *MountConfig) {
 	ExpectEq(false, mountConfig.AuthConfig.AnonymousAccess)
 	ExpectEq(false, mountConfig.EnableHNS)
 	ExpectFalse(mountConfig.FileSystemConfig.IgnoreInterrupts)
+	ExpectEq(false, mountConfig.FileSystemConfig.DisableParallelDirops)
 }
 
 func (t *YamlParserTest) TestReadConfigFile_EmptyFileName() {
@@ -130,6 +131,7 @@ func (t *YamlParserTest) TestReadConfigFile_ValidConfig() {
 
 	// file-system config
 	ExpectTrue(mountConfig.FileSystemConfig.IgnoreInterrupts)
+	ExpectTrue(mountConfig.FileSystemConfig.DisableParallelDirops)
 }
 
 func (t *YamlParserTest) TestReadConfigFile_InvalidLogConfig() {
@@ -265,4 +267,19 @@ func (t *YamlParserTest) TestReadConfigFile_FileSystemConfig_UnsetAnonymousAcces
 	AssertEq(nil, err)
 	AssertNe(nil, mountConfig)
 	AssertEq(false, mountConfig.AuthConfig.AnonymousAccess)
+}
+
+func (t *YamlParserTest) TestReadConfigFile_FileSystemConfig_InvalidDisableParallelDirops() {
+	_, err := ParseConfigFile("testdata/file_system_config/invalid_disable_parallel_dirops.yaml")
+
+	AssertNe(nil, err)
+	AssertTrue(strings.Contains(err.Error(), "error parsing config file: yaml: unmarshal errors:\n  line 2: cannot unmarshal !!int `-1` into bool"))
+}
+
+func (t *YamlParserTest) TestReadConfigFile_FileSystemConfig_UnsetDisableParallelDirops() {
+	mountConfig, err := ParseConfigFile("testdata/file_system_config/unset_disable_parallel_dirops.yaml")
+
+	AssertEq(nil, err)
+	AssertNe(nil, mountConfig)
+	AssertEq(false, mountConfig.FileSystemConfig.DisableParallelDirops)
 }
