@@ -19,16 +19,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
-
 	"cloud.google.com/go/storage"
+	control "cloud.google.com/go/storage/control/apiv2"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	mountpkg "github.com/googlecloudplatform/gcsfuse/v2/internal/mount"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/storageutil"
 	"golang.org/x/net/context"
 	option "google.golang.org/api/option"
 
-	// Side effect to run grpc client with direct-path on gcp machine.
 	_ "google.golang.org/grpc/balancer/rls"
 	_ "google.golang.org/grpc/xds/googledirectpath"
 )
@@ -43,7 +42,8 @@ type StorageHandle interface {
 }
 
 type storageClient struct {
-	client *storage.Client
+	client               *storage.Client
+	storageControlClient *control.StorageControlClient
 }
 
 // Followed https://pkg.go.dev/cloud.google.com/go/storage#hdr-Experimental_gRPC_API to create the gRPC client.
@@ -73,6 +73,41 @@ func createGRPCClientHandle(ctx context.Context, clientConfig *storageutil.Stora
 	clientOpts = append(clientOpts, option.WithUserAgent(clientConfig.UserAgent))
 
 	sc, err = storage.NewGRPCClient(ctx, clientOpts...)
+
+	// Unset the environment variable, since it's used only while creation of grpc client.
+	if err := os.Unsetenv("GOOGLE_CLOUD_ENABLE_DIRECT_PATH_XDS"); err != nil {
+		logger.Fatal("error while unsetting direct path env var: %v", err)
+	}
+
+	return
+}
+
+func createGRPCStorageControlClientHandle(ctx context.Context, clientConfig *storageutil.StorageClientConfig) (sc *control.StorageControlClient, err error) {
+	if clientConfig.ClientProtocol != mountpkg.GRPC {
+		return nil, fmt.Errorf("client-protocol requested is not GRPC: %s", clientConfig.ClientProtocol)
+	}
+
+	if err := os.Setenv("GOOGLE_CLOUD_ENABLE_DIRECT_PATH_XDS", "true"); err != nil {
+		logger.Fatal("error setting direct path env var: %v", err)
+	}
+
+	var clientOpts []option.ClientOption
+	tokenSrc, err := storageutil.CreateTokenSource(clientConfig)
+	if err != nil {
+		err = fmt.Errorf("while fetching tokenSource: %w", err)
+		return
+	}
+	clientOpts = append(clientOpts, option.WithTokenSource(tokenSrc))
+
+	// Add Custom endpoint option.
+	if clientConfig.CustomEndpoint != nil {
+		clientOpts = append(clientOpts, option.WithEndpoint(clientConfig.CustomEndpoint.String()))
+	}
+
+	clientOpts = append(clientOpts, option.WithGRPCConnectionPool(clientConfig.GrpcConnPoolSize))
+	clientOpts = append(clientOpts, option.WithUserAgent(clientConfig.UserAgent))
+
+	sc, err = control.NewStorageControlClient(ctx, clientOpts...)
 
 	// Unset the environment variable, since it's used only while creation of grpc client.
 	if err := os.Unsetenv("GOOGLE_CLOUD_ENABLE_DIRECT_PATH_XDS"); err != nil {
@@ -146,7 +181,17 @@ func NewStorageHandle(ctx context.Context, clientConfig storageutil.StorageClien
 		storage.WithPolicy(storage.RetryAlways),
 		storage.WithErrorFunc(storageutil.ShouldRetry))
 
-	sh = &storageClient{client: sc}
+	storageControlClient, err2 := createGRPCStorageControlClientHandle(ctx, &clientConfig)
+
+	if err2 != nil {
+		err = fmt.Errorf("error creating storage control client for folder apis %w", err)
+		return
+	}
+
+	sh = &storageClient{
+		client:               sc,
+		storageControlClient: storageControlClient,
+	}
 	return
 }
 
@@ -157,6 +202,6 @@ func (sh *storageClient) BucketHandle(bucketName string, billingProject string) 
 		storageBucketHandle = storageBucketHandle.UserProject(billingProject)
 	}
 
-	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName}
+	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName, scc: sh.storageControlClient}
 	return
 }

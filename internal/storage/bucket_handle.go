@@ -27,6 +27,8 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/storage"
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/storageutil"
 	"google.golang.org/api/googleapi"
@@ -37,6 +39,7 @@ type bucketHandle struct {
 	gcs.Bucket
 	bucket     *storage.BucketHandle
 	bucketName string
+	scc        *control.StorageControlClient
 }
 
 func (bh *bucketHandle) Name() string {
@@ -427,4 +430,8 @@ func (b *bucketHandle) ComposeObjects(ctx context.Context, req *gcs.ComposeObjec
 
 func isStorageConditionsNotEmpty(conditions storage.Conditions) bool {
 	return conditions != (storage.Conditions{})
+}
+
+func (b *bucketHandle) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+	return b.scc.RenameFolder(ctx, req)
 }

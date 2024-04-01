@@ -17,6 +17,8 @@ package gcs
 import (
 	"io"
 
+	control "cloud.google.com/go/storage/control/apiv2"
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"golang.org/x/net/context"
 )
 
@@ -114,4 +116,6 @@ type Bucket interface {
 	DeleteObject(
 		ctx context.Context,
 		req *DeleteObjectRequest) error
+
+	RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error)
 }

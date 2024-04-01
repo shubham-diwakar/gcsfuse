@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage/control/apiv2/controlpb"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/cache/metadata"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/gcsx"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/locker"
@@ -98,6 +99,8 @@ type DirInode interface {
 	// Return the full name of the child and the GCS object it backs up.
 	CloneToChildFile(ctx context.Context, name string, src *gcs.MinObject) (*Core, error)
 
+	UpdateCacheWithChildNode(ctx context.Context, name string, src *gcs.MinObject) (*Core, error)
+
 	// Create a symlink object with the supplied (relative) name and the supplied
 	// target, failing with *gcs.PreconditionError if a backing object already
 	// exists in GCS.
@@ -132,6 +135,11 @@ type DirInode interface {
 	// LocalFileEntries lists the local files present in the directory.
 	// Local means that the file is not yet present on GCS.
 	LocalFileEntries(localFileInodes map[Name]Inode) (localEntries []fuseutil.Dirent)
+
+	RenameFolder(
+		ctx context.Context,
+		name Name,
+		destinationFolderId string) (o *controlpb.Folder, err error)
 }
 
 // An inode that represents a directory from a GCS bucket.
@@ -220,16 +228,16 @@ func NewDirInode(
 	}
 
 	typed := &dirInode{
-		bucket:                     bucket,
-		mtimeClock:                 mtimeClock,
-		cacheClock:                 cacheClock,
-		id:                         id,
-		implicitDirs:               implicitDirs,
+		bucket:                      bucket,
+		mtimeClock:                  mtimeClock,
+		cacheClock:                  cacheClock,
+		id:                          id,
+		implicitDirs:                implicitDirs,
 		enableManagedFoldersListing: enableManagedFoldersListing,
-		enableNonexistentTypeCache: enableNonexistentTypeCache,
-		name:                       name,
-		attrs:                      attrs,
-		cache:                      metadata.NewTypeCache(typeCacheMaxSizeMB, typeCacheTTL),
+		enableNonexistentTypeCache:  enableNonexistentTypeCache,
+		name:                        name,
+		attrs:                       attrs,
+		cache:                       metadata.NewTypeCache(typeCacheMaxSizeMB, typeCacheTTL),
 	}
 
 	typed.lc.Init(id)
@@ -714,6 +722,20 @@ func (d *dirInode) CloneToChildFile(ctx context.Context, name string, src *gcs.M
 	return c, nil
 }
 
+func (d *dirInode) UpdateCacheWithChildNode(ctx context.Context, name string, src *gcs.MinObject) (*Core, error) {
+	// Erase any existing type information for this name.
+	d.cache.Erase(name)
+	fullName := NewFileName(d.Name(), name)
+
+	c := &Core{
+		Bucket:    d.Bucket(),
+		FullName:  fullName,
+		MinObject: src,
+	}
+	d.cache.Insert(d.cacheClock.Now(), name, c.Type())
+	return c, nil
+}
+
 // LOCKS_REQUIRED(d)
 func (d *dirInode) CreateChildSymlink(ctx context.Context, name string, target string) (*Core, error) {
 	fullName := NewFileName(d.Name(), name)
@@ -831,4 +853,22 @@ func (d *dirInode) LocalFileEntries(localFileInodes map[Name]Inode) (localEntrie
 		}
 	}
 	return
+}
+
+func (d *dirInode) RenameFolder(
+	ctx context.Context,
+	name Name,
+	destinationFolderId string) (o *controlpb.Folder, err error) {
+
+	req := &controlpb.RenameFolderRequest{
+		Name:                name.objectName,
+		DestinationFolderId: destinationFolderId,
+	}
+	op, err := d.bucket.RenameFolder(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	resp, err := op.Wait(ctx)
+	return resp, err
 }
