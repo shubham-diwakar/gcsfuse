@@ -433,5 +433,6 @@ func isStorageConditionsNotEmpty(conditions storage.Conditions) bool {
 }
 
 func (b *bucketHandle) RenameFolder(ctx context.Context, req *controlpb.RenameFolderRequest) (*control.RenameFolderOperation, error) {
+	fmt.Printf("#####  CALLING RENAME FOLDER API  #######")
 	return b.scc.RenameFolder(ctx, req)
 }

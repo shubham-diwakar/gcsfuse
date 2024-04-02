@@ -83,13 +83,13 @@ func createGRPCClientHandle(ctx context.Context, clientConfig *storageutil.Stora
 }
 
 func createGRPCStorageControlClientHandle(ctx context.Context, clientConfig *storageutil.StorageClientConfig) (sc *control.StorageControlClient, err error) {
-	if clientConfig.ClientProtocol != mountpkg.GRPC {
-		return nil, fmt.Errorf("client-protocol requested is not GRPC: %s", clientConfig.ClientProtocol)
-	}
-
-	if err := os.Setenv("GOOGLE_CLOUD_ENABLE_DIRECT_PATH_XDS", "true"); err != nil {
-		logger.Fatal("error setting direct path env var: %v", err)
-	}
+	//if clientConfig.ClientProtocol != mountpkg.GRPC {
+	//	return nil, fmt.Errorf("client-protocol requested is not GRPC: %s", clientConfig.ClientProtocol)
+	//}
+	//
+	//if err := os.Setenv("GOOGLE_CLOUD_ENABLE_DIRECT_PATH_XDS", "true"); err != nil {
+	//	logger.Fatal("error setting direct path env var: %v", err)
+	//}
 
 	var clientOpts []option.ClientOption
 	tokenSrc, err := storageutil.CreateTokenSource(clientConfig)
@@ -184,7 +184,7 @@ func NewStorageHandle(ctx context.Context, clientConfig storageutil.StorageClien
 	storageControlClient, err2 := createGRPCStorageControlClientHandle(ctx, &clientConfig)
 
 	if err2 != nil {
-		err = fmt.Errorf("error creating storage control client for folder apis %w", err)
+		err = fmt.Errorf("error creating storage control client for folder apis %w", err2)
 		return
 	}
 

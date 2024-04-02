@@ -939,6 +939,8 @@ func (fs *fileSystem) lookUpOrCreateChildInode(
 			return
 		}
 
+		//###core is mety here if we dont create parent node ####
+
 		if core == nil {
 			err = fuse.ENOENT
 			return
@@ -1840,8 +1842,10 @@ func (fs *fileSystem) Rename(
 
 	if child.FullName.IsDir() {
 		// ******* Call New Rename Folder API  *******
-		//return fs.renameDirForHNS(ctx, oldParent, op.OldName, newParent, op.NewName)
-		return fs.renameDir(ctx, oldParent, op.OldName, newParent, op.NewName)
+		fmt.Println("******* Call New Rename Folder API  *******")
+
+		return fs.renameDirForHNS(ctx, oldParent, op.OldName, newParent, op.NewName)
+		//	return fs.renameDir(ctx, oldParent, op.OldName, newParent, op.NewName)
 	}
 	return fs.renameFile(ctx, oldParent, op.OldName, child.MinObject, newParent, op.NewName)
 }
@@ -2050,7 +2054,7 @@ func (fs *fileSystem) renameDirForHNS(
 		return fmt.Errorf("too many objects to be renamed: %w", syscall.EMFILE)
 	}
 
-	//Create the backing object of the new directory.
+	// Create the backing object of the new directory.
 	//newParent.Lock()
 	//_, err = newParent.CreateChildDir(ctx, newName)
 	//newParent.Unlock()
@@ -2064,6 +2068,16 @@ func (fs *fileSystem) renameDirForHNS(
 	//		return fmt.Errorf("CreateChildDir: %w", err)
 	//	}
 	//}
+
+	// ### Starting execution of new folder rename api  ##
+	fmt.Println("####### Starting execution of new folder rename api  #########")
+	oldParent.Lock()
+	newParent.Unlock()
+	resp, err := oldParent.RenameFolder(ctx, oldParent.Name(), newParent.Name().GcsObjectName())
+	oldParent.Unlock()
+	newParent.Unlock()
+
+	fmt.Print(resp)
 
 	// Get the inode of the new directory
 	newDir, err := fs.lookUpOrCreateChildDirInode(ctx, newParent, newName)
@@ -2119,9 +2133,6 @@ func (fs *fileSystem) renameDirForHNS(
 	//}
 
 	//****** Call Rename API on old parent  ******
-	resp, err := oldParent.RenameFolder(ctx, oldParent.Name(), newParent.Name().GcsObjectName())
-
-	fmt.Print(resp)
 
 	return err
 }
