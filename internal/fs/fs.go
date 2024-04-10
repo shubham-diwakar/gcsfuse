@@ -1841,8 +1841,6 @@ func (fs *fileSystem) Rename(
 	}
 
 	if child.FullName.IsDir() {
-		// ******* Call New Rename Folder API  *******
-		fmt.Println("******* Call New Rename Folder API  *******")
 
 		return fs.renameDirForHNS(ctx, oldParent, op.OldName, newParent, op.NewName)
 		//	return fs.renameDir(ctx, oldParent, op.OldName, newParent, op.NewName)
@@ -2018,9 +2016,6 @@ func (fs *fileSystem) renameDirForHNS(
 		newParent inode.DirInode,
 		newName string) error {
 
-	// Set up a function that throws away the lookup count increment from
-	// lookUpOrCreateChildInode (since the pending inodes are not sent back to
-	// the kernel) and unlocks the pending inodes, but only once
 	var pendingInodes []inode.DirInode
 	releaseInodes := func() {
 		for _, in := range pendingInodes {
@@ -2054,23 +2049,6 @@ func (fs *fileSystem) renameDirForHNS(
 		return fmt.Errorf("too many objects to be renamed: %w", syscall.EMFILE)
 	}
 
-	// Create the backing object of the new directory.
-	//newParent.Lock()
-	//_, err = newParent.CreateChildDir(ctx, newName)
-	//newParent.Unlock()
-
-	//if err != nil {
-	//	var preconditionErr *gcs.PreconditionError
-	//	if errors.As(err, &preconditionErr) {
-	//		// This means the new directory already exists, which is OK if
-	//		// it is empty (checked below).
-	//	} else {
-	//		return fmt.Errorf("CreateChildDir: %w", err)
-	//	}
-	//}
-
-	// ### Starting execution of new folder rename api  ##
-	fmt.Println("####### Starting execution of new folder rename api  #########")
 	oldParent.Lock()
 	newParent.Unlock()
 	resp, err := oldParent.RenameFolder(ctx, oldParent.Name(), newParent.Name().GcsObjectName())
@@ -2120,19 +2098,6 @@ func (fs *fileSystem) renameDirForHNS(
 
 	// We are done with both directories.
 	releaseInodes()
-
-	// Delete the backing object of the old directory.
-	//fs.mu.Lock()
-	//_, isImplicitDir := fs.implicitDirInodes[oldDir.Name()]
-	//fs.mu.Unlock()
-	//oldParent.Lock()
-	//err = oldParent.DeleteChildDir(ctx, oldName, isImplicitDir)
-	//oldParent.Unlock()
-	//if err != nil {
-	//	return fmt.Errorf("DeleteChildDir: %w", err)
-	//}
-
-	//****** Call Rename API on old parent  ******
 
 	return err
 }
