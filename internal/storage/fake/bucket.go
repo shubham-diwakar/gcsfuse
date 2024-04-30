@@ -42,6 +42,12 @@ func NewFakeBucket(clock timeutil.Clock, name string) gcs.Bucket {
 	return b
 }
 
+func NewFakeHNSBucket(clock timeutil.Clock, name string) gcs.Bucket {
+	b := &bucket{clock: clock, name: name, bucketType: "HNS"}
+	b.mu = syncutil.NewInvariantMutex(b.checkInvariants)
+	return b
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Helper types
 ////////////////////////////////////////////////////////////////////////
@@ -124,9 +130,10 @@ func (s fakeObjectSlice) prefixUpperBound(prefix string) int {
 ////////////////////////////////////////////////////////////////////////
 
 type bucket struct {
-	clock timeutil.Clock
-	name  string
-	mu    syncutil.InvariantMutex
+	clock      timeutil.Clock
+	name       string
+	bucketType string
+	mu         syncutil.InvariantMutex
 
 	// The set of extant objects.
 	//
@@ -433,6 +440,10 @@ func copyObject(o *gcs.Object) *gcs.Object {
 
 func (b *bucket) Name() string {
 	return b.name
+}
+
+func (b *bucket) Type() string {
+	return b.bucketType
 }
 
 // LOCKS_EXCLUDED(b.mu)

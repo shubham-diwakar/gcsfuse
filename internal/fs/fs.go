@@ -199,7 +199,9 @@ func NewFileSystem(
 		root = makeRootForAllBuckets(fs)
 	} else {
 		logger.Info("Set up root directory for bucket " + cfg.BucketName)
-		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName, false)
+		bucketType := "flat" //need to make it const
+		//TODO: if enable HNS an storage layout api will be called here and bucket type will be changed to hns if its hns bucket
+		syncerBucket, err := fs.bucketManager.SetUpBucket(ctx, cfg.BucketName, false, bucketType)
 		if err != nil {
 			return nil, fmt.Errorf("SetUpBucket: %w", err)
 		}

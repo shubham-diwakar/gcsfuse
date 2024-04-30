@@ -67,7 +67,7 @@ type BucketConfig struct {
 type BucketManager interface {
 	SetUpBucket(
 		ctx context.Context,
-		name string, isMultibucketMount bool) (b SyncerBucket, err error)
+		name string, isMultibucketMount bool, bucketType string) (b SyncerBucket, err error)
 
 	// Shuts down the bucket manager and its buckets
 	ShutDown()
@@ -156,13 +156,14 @@ func (bm *bucketManager) SetUpBucket(
 	ctx context.Context,
 	name string,
 	isMultibucketMount bool,
+	bucketType string,
 ) (sb SyncerBucket, err error) {
 	var b gcs.Bucket
 	// Set up the appropriate backing bucket.
 	if name == canned.FakeBucketName {
 		b = canned.MakeFakeBucket(ctx)
 	} else {
-		b = bm.storageHandle.BucketHandle(name, bm.config.BillingProject)
+		b = bm.storageHandle.BucketHandle(name, bm.config.BillingProject, bucketType)
 	}
 
 	// Enable monitoring.

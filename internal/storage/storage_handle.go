@@ -40,7 +40,7 @@ type StorageHandle interface {
 	// to that project rather than to the bucket's owning project.
 	//
 	// A user-project is required for all operations on Requester Pays buckets.
-	BucketHandle(bucketName string, billingProject string) (bh *bucketHandle)
+	BucketHandle(bucketName string, billingProject string, bucketType string) (bh *bucketHandle)
 }
 
 type storageClient struct {
@@ -156,13 +156,13 @@ func NewStorageHandle(ctx context.Context, clientConfig storageutil.StorageClien
 	return
 }
 
-func (sh *storageClient) BucketHandle(bucketName string, billingProject string) (bh *bucketHandle) {
+func (sh *storageClient) BucketHandle(bucketName string, billingProject string, bucketType string) (bh *bucketHandle) {
 	storageBucketHandle := sh.client.Bucket(bucketName)
 
 	if billingProject != "" {
 		storageBucketHandle = storageBucketHandle.UserProject(billingProject)
 	}
 
-	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName}
+	bh = &bucketHandle{bucket: storageBucketHandle, bucketName: bucketName, bucketType: bucketType}
 	return
 }

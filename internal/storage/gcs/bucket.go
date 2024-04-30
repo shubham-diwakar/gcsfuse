@@ -30,6 +30,7 @@ import (
 // All methods are safe for concurrent access.
 type Bucket interface {
 	Name() string
+	Type() string
 
 	// Create a reader for the contents of a particular generation of an object.
 	// On a nil error, the caller must arrange for the reader to be closed when

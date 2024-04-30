@@ -132,7 +132,8 @@ func (d *baseDirInode) LookUpChild(ctx context.Context, name string) (*Core, err
 	var err error
 	bucket, ok := d.buckets[name]
 	if !ok {
-		bucket, err = d.bucketManager.SetUpBucket(ctx, name, true)
+		bucketType := "flat" //no to get bucket type at mount time
+		bucket, err = d.bucketManager.SetUpBucket(ctx, name, true, bucketType)
 		if err != nil {
 			return nil, err
 		}
