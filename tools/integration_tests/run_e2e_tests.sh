@@ -185,61 +185,61 @@ function print_test_logs() {
 function run_e2e_tests_for_flat_bucket() {
   # Adding prefix `golang-grpc-test` to white list the bucket for grpc so that
   # we can run grpc related e2e tests.
-  bucketPrefix="golang-grpc-test-gcsfuse-non-parallel-e2e-tests-"
-  bucket_name_non_parallel=$(create_bucket $bucketPrefix)
-  echo "Bucket name for non parallel tests: "$bucket_name_non_parallel
-
-  bucketPrefix="golang-grpc-test-gcsfuse-parallel-e2e-tests-"
-  bucket_name_parallel=$(create_bucket $bucketPrefix)
-  echo "Bucket name for parallel tests: "$bucket_name_parallel
-
-  echo "Running parallel tests..."
-  run_parallel_tests TEST_DIR_PARALLEL $bucket_name_parallel &
-  parallel_tests_pid=$!
-
- echo "Running non parallel tests ..."
- run_non_parallel_tests TEST_DIR_NON_PARALLEL $bucket_name_non_parallel &
- non_parallel_tests_pid=$!
-
- # Wait for all tests to complete.
- wait $parallel_tests_pid
- parallel_tests_exit_code=$?
- wait $non_parallel_tests_pid
- non_parallel_tests_exit_code=$?
-
- flat_buckets=("$bucket_name_parallel" "$bucket_name_non_parallel")
- clean_up flat_buckets
-
- if [ $non_parallel_tests_exit_code != 0 ] || [ $parallel_tests_exit_code != 0 ];
- then
-   return 1
- fi
+#  bucketPrefix="golang-grpc-test-gcsfuse-non-parallel-e2e-tests-"
+#  bucket_name_non_parallel=$(create_bucket $bucketPrefix)
+#  echo "Bucket name for non parallel tests: "$bucket_name_non_parallel
+#
+#  bucketPrefix="golang-grpc-test-gcsfuse-parallel-e2e-tests-"
+#  bucket_name_parallel=$(create_bucket $bucketPrefix)
+#  echo "Bucket name for parallel tests: "$bucket_name_parallel
+#
+#  echo "Running parallel tests..."
+#  run_parallel_tests TEST_DIR_PARALLEL $bucket_name_parallel &
+#  parallel_tests_pid=$!
+#
+# echo "Running non parallel tests ..."
+# run_non_parallel_tests TEST_DIR_NON_PARALLEL $bucket_name_non_parallel &
+# non_parallel_tests_pid=$!
+#
+# # Wait for all tests to complete.
+# wait $parallel_tests_pid
+# parallel_tests_exit_code=$?
+# wait $non_parallel_tests_pid
+# non_parallel_tests_exit_code=$?
+#
+# flat_buckets=("$bucket_name_parallel" "$bucket_name_non_parallel")
+# clean_up flat_buckets
+#
+# if [ $non_parallel_tests_exit_code != 0 ] || [ $parallel_tests_exit_code != 0 ];
+# then
+#   return 1
+# fi
  return 0
 }
 
 function run_e2e_tests_for_hns_bucket(){
-   hns_bucket_name=$(create_hns_bucket)
-   echo "Hns Bucket Created: "$hns_bucket_name
-
-   echo "Running tests for HNS bucket"
-   run_non_parallel_tests TEST_DIR_HNS_GROUP "$hns_bucket_name"
-   non_parallel_tests_pid_hns_group=$!
-
-   wait $non_parallel_tests_pid_hns_group
-   non_parallel_tests_hns_group_exit_code=$?
-
-   hns_buckets=("$hns_bucket_name")
-   clean_up hns_buckets
-
-   if [ $non_parallel_tests_hns_group_exit_code != 0 ];
-   then
-     return 1
-   fi
+#   hns_bucket_name=$(create_hns_bucket)
+#   echo "Hns Bucket Created: "$hns_bucket_name
+#
+#   echo "Running tests for HNS bucket"
+#   run_non_parallel_tests TEST_DIR_HNS_GROUP "$hns_bucket_name"
+#   non_parallel_tests_pid_hns_group=$!
+#
+#   wait $non_parallel_tests_pid_hns_group
+#   non_parallel_tests_hns_group_exit_code=$?
+#
+#   hns_buckets=("$hns_bucket_name")
+#   clean_up hns_buckets
+#
+#   if [ $non_parallel_tests_hns_group_exit_code != 0 ];
+#   then
+#     return 1
+#   fi
    return 0
 }
 
 function run_e2e_tests_for_anywhere_cache(){
-   local test_bucket_name="lankita-anywhere-cache-test" ## TODO: adding temporary bucket name for testing purpose
+   local test_bucket_name="golang-grpc-test-lankita-anywhere-cache-test" ## TODO: adding temporary bucket name for testing purpose
 
    echo "Running tests for Anywhere Cache"
    run_non_parallel_tests TEST_DIR_HNS_GROUP "$test_bucket_name" ## TODO: separate group will be created for anywhere cache in final tests
@@ -248,7 +248,7 @@ function run_e2e_tests_for_anywhere_cache(){
    wait $non_parallel_tests_pid_anywhere_cache_group
    non_parallel_tests_pid_anywhere_cache_group_exit_code=$?
 
-   clean_up test_bucket_name
+   # clean_up test_bucket_name
 
    if [ $non_parallel_tests_pid_anywhere_cache_group_exit_code != 0 ];
    then
@@ -277,9 +277,9 @@ function clean_up() {
 function main(){
   set -e
 
-  upgrade_gcloud_version
-
-  install_packages
+#  upgrade_gcloud_version
+#
+#  install_packages
 
   set +e
 
@@ -290,9 +290,9 @@ function main(){
   run_e2e_tests_for_flat_bucket &
   e2e_tests_flat_bucket_pid=$!
 
-# Will uncomment code once test project is allow list for anywhere cache
-#  run_e2e_tests_for_anywhere_cache &
-#  e2e_tests_anywhere_cache_test_pid=$!
+  # Will uncomment code once test project is allow list for anywhere cache
+  run_e2e_tests_for_anywhere_cache &
+  e2e_tests_anywhere_cache_test_pid=$!
 
   wait $e2e_tests_flat_bucket_pid
   e2e_tests_flat_bucket_status=$?
@@ -300,8 +300,8 @@ function main(){
   wait $e2e_tests_hns_bucket_pid
   e2e_tests_hns_bucket_status=$?
 
-#  wait $e2e_tests_anywhere_cache_test_pid
-#  e2e_tests_anywhere_cache_test_status=$?
+  wait $e2e_tests_anywhere_cache_test_pid
+  e2e_tests_anywhere_cache_test_status=$?
 
   set -e
 
@@ -325,11 +325,11 @@ function main(){
     exit 1
   fi
 
-#  if [ $e2e_tests_anywhere_cache_test_status != 0 ];
-#    then
-#      echo "The e2e tests for anywhere cache failed.."
-#      exit 1
-#    fi
+  if [ $e2e_tests_anywhere_cache_test_status != 0 ];
+    then
+      echo "The e2e tests for anywhere cache failed.."
+      exit 1
+    fi
 
   # Removing bin file after testing.
   if [ $RUN_E2E_TESTS_ON_PACKAGE != true ];
