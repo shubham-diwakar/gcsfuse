@@ -1,0 +1,18 @@
+{
+        "name": "list-test-managed-folders" ,
+        "num_folders": 3 ,
+        "folders": [
+                {
+                        "name": "10_managed_folders" ,
+                        "num_folders": 10
+                } ,
+                {
+                        "name": "100_managed_folders" ,
+                        "num_folders": 100
+                } ,
+                {
+                        "name": "1000_managed_folders" ,
+                        "num_folders": 1000
+                }
+        ]
+}
