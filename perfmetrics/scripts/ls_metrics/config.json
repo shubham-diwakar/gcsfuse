@@ -1,6 +1,6 @@
 {
         "name": "list-test-simulated-folders" ,
-        "num_folders": 4 ,
+        "num_folders": 3 ,
         "folders": [
                 {
                         "name": "10_simulated_folders" ,
@@ -13,10 +13,6 @@
                 {
                         "name": "1000_simulated_folders" ,
                         "num_folders": 1000
-                } ,
-                {
-                        "name": "10000_simulated_folders" ,
-                        "num_folders": 10000
                 }
         ]
 }
