@@ -561,13 +561,13 @@ if __name__ == '__main__':
     config_json = json.load(file)
   directory_structure = ParseDict(config_json, directory_proto.Directory())
 
-  # log.info('Started checking the directory structure in the bucket.\n')
-  # directory_structure_present = _compare_directory_structure(
-  #     'gs://{}/'.format(directory_structure.name), directory_structure)
+  log.info('Started checking the directory structure in the bucket.\n')
+  directory_structure_present = _compare_directory_structure(
+      'gs://{}/'.format(directory_structure.name), directory_structure)
 
   # Removing the already present folder in persistent disk so as to create the
   # files from scratch.
-  # persistent_disk = 'persistent_disk'
+  persistent_disk = 'persistent_disk'
   # if os.path.exists('./{}'.format(persistent_disk)):
   #   subprocess.call('rm -rf {}'.format(persistent_disk), shell=True)
 
