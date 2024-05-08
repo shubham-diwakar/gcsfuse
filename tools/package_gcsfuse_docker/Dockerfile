@@ -89,3 +89,7 @@ RUN fpm \
     --vendor "" \
     --url "https://$GCSFUSE_REPO" \
     --description "A user-space file system for Google Cloud Storage."
+
+FROM scratch
+ARG GCSFUSE_PKG="/packages"
+COPY --from=builder ${GCSFUSE_PKG} ${GCSFUSE_PKG}
