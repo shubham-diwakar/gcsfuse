@@ -90,7 +90,8 @@ type EnableHNS bool
 type CacheDir string
 
 type FileSystemConfig struct {
-	IgnoreInterrupts bool `yaml:"ignore-interrupts"`
+	IgnoreInterrupts            bool          `yaml:"ignore-interrupts"`
+	DirContentCacheTtlInSeconds time.Duration `yaml:"dir-content-cache-ttl-secs"`
 }
 
 type FileCacheConfig struct {
@@ -180,6 +181,9 @@ func NewMountConfig() *MountConfig {
 		AnonymousAccess: DefaultAnonymousAccess,
 	}
 	mountConfig.EnableHNS = DefaultEnableHNS
+	mountConfig.FileSystemConfig = FileSystemConfig{
+		DirContentCacheTtlInSeconds: 0,
+	}
 
 	return mountConfig
 }
