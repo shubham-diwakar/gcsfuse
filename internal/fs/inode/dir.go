@@ -24,6 +24,7 @@ import (
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/cache/metadata"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/gcsx"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/locker"
+	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/gcs"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/storage/storageutil"
 	"github.com/jacobsa/fuse/fuseops"
@@ -132,6 +133,8 @@ type DirInode interface {
 	// LocalFileEntries lists the local files present in the directory.
 	// Local means that the file is not yet present on GCS.
 	LocalFileEntries(localFileInodes map[Name]Inode) (localEntries []fuseutil.Dirent)
+
+	LastDirContentCacheTime() time.Time
 }
 
 // An inode that represents a directory from a GCS bucket.
@@ -179,6 +182,9 @@ type dirInode struct {
 	//
 	// GUARDED_BY(mu)
 	cache metadata.TypeCache
+
+	// last cached response
+	lastDirContentCachedTime time.Time
 }
 
 var _ DirInode = &dirInode{}
@@ -230,6 +236,7 @@ func NewDirInode(
 		name:                        name,
 		attrs:                       attrs,
 		cache:                       metadata.NewTypeCache(typeCacheMaxSizeMB, typeCacheTTL),
+		lastDirContentCachedTime:    time.Unix(0, 0),
 	}
 
 	typed.lc.Init(id)
@@ -650,6 +657,9 @@ func (d *dirInode) ReadEntries(
 		}
 		entries = append(entries, entry)
 	}
+
+	d.lastDirContentCachedTime = time.Now()
+	logger.Info("Setting the time: ", d.lastDirContentCachedTime)
 	return
 }
 
@@ -831,4 +841,8 @@ func (d *dirInode) LocalFileEntries(localFileInodes map[Name]Inode) (localEntrie
 		}
 	}
 	return
+}
+
+func (d *dirInode) LastDirContentCacheTime() time.Time {
+	return d.lastDirContentCachedTime
 }

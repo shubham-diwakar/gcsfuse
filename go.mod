@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/googleapis/gax-go/v2 v2.12.3
 	github.com/jacobsa/daemonize v0.0.0-20160101105449-e460293e890f
-	github.com/jacobsa/fuse v0.0.0-20231003132804-d0f3daf365c3
+	//github.com/jacobsa/fuse v0.0.0-20231003132804-d0f3daf365c3
 	github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd
 	github.com/jacobsa/oglemock v0.0.0-20150831005832-e94d794d06ff
 	github.com/jacobsa/ogletest v0.0.0-20170503003838-80d50a735a11
@@ -33,6 +33,10 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/jacobsa/fuse => ../fuse
+
+require github.com/jacobsa/fuse v0.0.0-00010101000000-000000000000
 
 require (
 	cloud.google.com/go v0.112.1 // indirect
