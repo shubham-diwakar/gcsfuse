@@ -14,7 +14,7 @@ class OSRead(task.LoadTestTask):
 
   def task(self, process_id, thread_id):
     content_len = 0
-    for i in range(20):
+    for i in range(400):
       file_path = MOUNT_DIR + "Workload.{0}/{1}".format(process_id, i)
       with open(file_path, 'rb') as f_p:
         # read 1M file size
