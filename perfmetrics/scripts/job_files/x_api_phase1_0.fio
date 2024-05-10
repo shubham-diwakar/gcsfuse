@@ -1,0 +1,25 @@
+; -- use nrfiles and rw to CLI args to control readtype and number of files --
+[global]
+ioengine=libaio
+direct=1
+fadvise_hint=0
+iodepth=64
+runtime=20m
+time_based=1
+invalidate=1
+nrfiles=${NRFILES}
+thread=1
+openfiles=${NRFILES}
+group_reporting=1
+create_serialize=0
+allrandrepeat=0
+file_service_type=random
+numjobs=${NUMJOBS}
+filename_format=$jobname.$jobnum
+
+[Workload]
+directory=${DIR}
+bs=${BLOCK_SIZE}
+filesize=${FILE_SIZE}
+size=${NRFILES}*${FILE_SIZE}*$mb_memory
+rw=${READ_TYPE}
