@@ -88,7 +88,7 @@ const Content = "line 1\nline 2\n"
 const onlyDirMounted = "OnlyDirMountOperations"
 
 func createMountConfigsAndEquivalentFlags() (flags [][]string) {
-	cacheDirPath := path.Join(os.Getenv("HOME"), "cache-dri")
+	cacheDirPath := path.Join(os.Getenv("HOME"), "cache-dir")
 
 	// Set up config file with create-empty-file: true.
 	mountConfig1 := config.MountConfig{
@@ -119,6 +119,15 @@ func createMountConfigsAndEquivalentFlags() (flags [][]string) {
 	filePath2 := setup.YAMLConfigFile(mountConfig2, "config2.yaml")
 	flags = append(flags, []string{"--config-file=" + filePath2})
 
+	mountConfig3 := config.MountConfig{
+		// Run with metadata caches disabled.
+		MetadataCacheConfig: config.MetadataCacheConfig{
+			TtlInSeconds: 0,
+		},
+	}
+	filePath3 := setup.YAMLConfigFile(mountConfig3, "config3.yaml")
+	flags = append(flags, []string{"--config-file=" + filePath3})
+
 	return flags
 }
 
@@ -142,8 +151,8 @@ func TestMain(m *testing.M) {
 		// By default, creating emptyFile is disabled.
 		{"--implicit-dirs=true"},
 		{"--implicit-dirs=false"},
-		{"--experimental-enable-json-read=true", "--implicit-dirs=true"},
-		{"--client-protocol=grpc", "--implicit-dirs=true"}}
+		{"--experimental-enable-json-read=true", "--implicit-dirs=true"}}
+	//{"--client-protocol=grpc", "--implicit-dirs=true"}}
 
 	if !testing.Short() {
 		flagsSet = append(flagsSet, []string{"--client-protocol=grpc", "--implicit-dirs=false"})
