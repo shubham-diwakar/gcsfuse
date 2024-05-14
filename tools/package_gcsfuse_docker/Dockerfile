@@ -31,7 +31,7 @@ ARG BRANCH_NAME="v${GCSFUSE_VERSION}"
 RUN git clone ${GCSFUSE_REPO} 
 ARG GCSFUSE_PATH=${GOPATH}/gcsfuse
 WORKDIR ${GCSFUSE_PATH}
-RUN git checkout ${BRANCH_NAME}
+RUN git checkout 12536abe624fff3b087a9dce32db8f364f51ec88
 
 ARG DEBEMAIL="gcs-fuse-maintainers@google.com"
 ARG DEBFULLNAME="GCSFuse Team"
