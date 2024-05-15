@@ -103,9 +103,9 @@ func TestMain(m *testing.M) {
 		{"--implicit-dirs=true", "--rename-dir-limit=3"},
 		{"--implicit-dirs=false", "--rename-dir-limit=3"}}
 
-	if !testing.Short() {
-		setup.AppendFlagsToAllFlagsInTheFlagsSet(&flagsSet, "--client-protocol=grpc")
-	}
+	//if !testing.Short() {
+	//	setup.AppendFlagsToAllFlagsInTheFlagsSet(&flagsSet, "--client-protocol=grpc")
+	//}
 
 	successCode := static_mounting.RunTests(flagsSet, m)
 

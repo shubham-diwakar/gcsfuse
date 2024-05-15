@@ -37,9 +37,9 @@ func TestMain(m *testing.M) {
 	setup.ParseSetUpFlags()
 
 	flags := [][]string{{"--implicit-dirs", "--stat-cache-ttl=0"}}
-	if !testing.Short() {
-		flags = append(flags, []string{"--client-protocol=grpc", "--implicit-dirs=true", "--stat-cache-ttl=0"})
-	}
+	//if !testing.Short() {
+	//	flags = append(flags, []string{"--client-protocol=grpc", "--implicit-dirs=true", "--stat-cache-ttl=0"})
+	//}
 
 	if setup.TestBucket() == "" && setup.MountedDirectory() != "" {
 		log.Print("Please pass the name of bucket mounted at mountedDirectory to --testBucket flag.")

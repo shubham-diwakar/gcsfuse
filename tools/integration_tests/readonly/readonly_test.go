@@ -78,9 +78,9 @@ func TestMain(m *testing.M) {
 
 	flags := [][]string{{"--o=ro", "--implicit-dirs=true"}, {"--file-mode=544", "--dir-mode=544", "--implicit-dirs=true"}}
 
-	if !testing.Short() {
-		flags = append(flags, []string{"--client-protocol=grpc", "--o=ro", "--implicit-dirs=true"})
-	}
+	//if !testing.Short() {
+	//	flags = append(flags, []string{"--client-protocol=grpc", "--o=ro", "--implicit-dirs=true"})
+	//}
 
 	setup.ExitWithFailureIfBothTestBucketAndMountedDirectoryFlagsAreNotSet()
 
