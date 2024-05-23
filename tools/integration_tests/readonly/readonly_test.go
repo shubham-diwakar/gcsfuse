@@ -76,7 +76,7 @@ func createMountConfigsAndEquivalentFlags() (flags [][]string) {
 func TestMain(m *testing.M) {
 	setup.ParseSetUpFlags()
 
-	flags := [][]string{{"--o=ro", "--implicit-dirs=true"}, {"--file-mode=544", "--dir-mode=544", "--implicit-dirs=true"}}
+	flags := [][]string{{"--o=ro", "--implicit-dirs=true", "--stat-cache-ttl=0"}, {"--file-mode=544", "--dir-mode=544", "--implicit-dirs=true", "--stat-cache-ttl=0"}}
 
 	if !testing.Short() {
 		flags = append(flags, []string{"--client-protocol=grpc", "--o=ro", "--implicit-dirs=true"})
