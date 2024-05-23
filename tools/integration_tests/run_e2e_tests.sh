@@ -21,6 +21,14 @@ RUN_E2E_TESTS_ON_PACKAGE=$1
 # Pass "true" to skip few non-essential tests.
 # By default, this script runs all the integration tests.
 SKIP_NON_ESSENTIAL_TESTS_ON_PACKAGE=$2
+# Pass "true" to run e2e tests on TPC endpoint.
+# The default value will be false.
+RUN_TEST_ON_TPC_ENDPOINT=false
+if [ $3 != "" ]; then
+  RUN_TEST_ON_TPC_ENDPOINT=$3
+fi
+PROJECT_ID=$4
+BUCKET_LOCATION=$5
 
 INTEGRATION_TEST_TIMEOUT=60m
 
@@ -31,7 +39,7 @@ if [ "$SKIP_NON_ESSENTIAL_TESTS_ON_PACKAGE" == true ]; then
   echo "Changing the integration test timeout to: $INTEGRATION_TEST_TIMEOUT"
 fi
 
-readonly BUCKET_LOCATION="us-west1"
+
 readonly RANDOM_STRING_LENGTH=5
 # Test directory arrays
 TEST_DIR_PARALLEL=(
@@ -96,11 +104,10 @@ function install_packages() {
 
 function create_bucket() {
   bucket_prefix=$1
-  local -r project_id="gcs-fuse-test-ml"
   # Generate bucket name with random string
   bucket_name=$bucket_prefix$(tr -dc 'a-z0-9' < /dev/urandom | head -c $RANDOM_STRING_LENGTH)
   # We are using gcloud alpha because gcloud storage is giving issues running on Kokoro
-  gcloud alpha storage buckets create gs://$bucket_name --project=$project_id --location=$BUCKET_LOCATION --uniform-bucket-level-access
+  gcloud alpha storage buckets create gs://$bucket_name --project=$PROJECT_ID --location=$BUCKET_LOCATION --uniform-bucket-level-access
   echo $bucket_name
 }
 
@@ -219,6 +226,11 @@ function run_e2e_tests_for_flat_bucket() {
 }
 
 function run_e2e_tests_for_hns_bucket(){
+   if [ $RUN_TEST_ON_TPC_ENDPOINT == true ]; then
+     echo "These tests will not run on TPC environment"
+     return 0
+   fi
+
    hns_bucket_name=$(create_hns_bucket)
    echo "Hns Bucket Created: "$hns_bucket_name
 
