@@ -39,7 +39,7 @@ then
   UPLOAD_FLAGS="--upload_gs"
 fi
 
-GCSFUSE_FLAGS="--implicit-dirs  --debug_fuse --debug_gcs --log-format --custom-endpoint=storage.apis-tpczero.goog:443 --key-file=~/key.json \"text\" "
+GCSFUSE_FLAGS="--implicit-dirs  --debug_fuse --debug_gcs --log-format \"text\" --custom-endpoint=storage.apis-tpczero.goog:443 --key-file=~/key.json"
 LOG_FILE_FIO_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-logs.txt
 GCSFUSE_FIO_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_FIO_TESTS --stackdriver-export-interval=30s"
 BUCKET_NAME="tulsishah_test"
