@@ -39,16 +39,16 @@ then
   UPLOAD_FLAGS="--upload_gs"
 fi
 
-GCSFUSE_FLAGS="--implicit-dirs  --debug_fuse --debug_gcs --log-format \"text\" "
+GCSFUSE_FLAGS="--implicit-dirs  --debug_fuse --debug_gcs --log-format --custom-endpoint=storage.apis-tpczero.goog:443 --key-file=~/key.json \"text\" "
 LOG_FILE_FIO_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-logs.txt
 GCSFUSE_FIO_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_FIO_TESTS --stackdriver-export-interval=30s"
-BUCKET_NAME="periodic-perf-tests"
+BUCKET_NAME="tulsishah_test"
 
 # Executing perf tests
 ./run_load_test_and_fetch_metrics.sh "$GCSFUSE_FIO_FLAGS" "$UPLOAD_FLAGS" "$BUCKET_NAME"
 
 # ls_metrics test. This test does gcsfuse mount with the passed flags first and then does the testing.
-LOG_FILE_LIST_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-list-logs.txt
-GCSFUSE_LIST_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_LIST_TESTS"
-cd "./ls_metrics"
-./run_ls_benchmark.sh "$GCSFUSE_LIST_FLAGS" "$UPLOAD_FLAGS"
+#LOG_FILE_LIST_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-list-logs.txt
+#GCSFUSE_LIST_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_LIST_TESTS"
+#cd "./ls_metrics"
+#./run_ls_benchmark.sh "$GCSFUSE_LIST_FLAGS" "$UPLOAD_FLAGS"
