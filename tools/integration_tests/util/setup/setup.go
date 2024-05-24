@@ -364,7 +364,7 @@ func CleanupDirectoryOnGCS(directoryPathOnGCS string) {
 	command := "storage rm -r "
 	if TestOnTPCEndPoint() {
 		// rm -r through database locked error in TPC environment.
-		command = "storage rm"
+		command = "storage rm "
 	}
 	_, err := operations.ExecuteGcloudCommandf(command, "gs://%s", directoryPathOnGCS)
 	if err != nil {
