@@ -26,8 +26,7 @@ import (
 func MountGcsfuseWithStaticMounting(flags []string) (err error) {
 	var defaultArg []string
 	if setup.TestOnTPCEndPoint() {
-		defaultArg = append(defaultArg, "--custom-endpoint=storage.apis-tpczero.goog:443",
-			"--key-file=/tmp/sa.key.json")
+		defaultArg = append(defaultArg, "--custom-endpoint=storage.apis-tpczero.goog:443")
 	}
 
 	defaultArg = append(defaultArg, "--debug_gcs",

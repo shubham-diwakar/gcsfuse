@@ -29,8 +29,7 @@ const DirectoryInTestBucket = "Test"
 func MountGcsfuseWithOnlyDir(flags []string) (err error) {
 	var defaultArg []string
 	if setup.TestOnTPCEndPoint() {
-		defaultArg = append(defaultArg, "--custom-endpoint=storage.apis-tpczero.goog:443",
-			"--key-file=/tmp/sa.key.json")
+		defaultArg = append(defaultArg, "--custom-endpoint=storage.apis-tpczero.goog:443")
 	}
 
 	defaultArg = append(defaultArg, "--only-dir",
@@ -41,7 +40,6 @@ func MountGcsfuseWithOnlyDir(flags []string) (err error) {
 		"--log-file="+setup.LogFile(),
 		"--log-format=text",
 		"--custom-endpoint=storage.apis-tpczero.goog:443",
-		"--key-file=/tmp/sa.key.json",
 		setup.TestBucket(),
 		setup.MntDir())
 
