@@ -37,7 +37,7 @@ import (
 func CreateStorageClient(ctx context.Context) (client *storage.Client, err error) {
 	// Create new storage client.
 	if setup.TestOnTPCEndPoint() {
-		client, err = storage.NewClient(ctx, option.WithEndpoint("storage.apis-tpczero.goog:443"))
+		client, err = storage.NewClient(ctx, option.WithEndpoint("storage.apis-tpczero.goog:443"), option.WithUniverseDomain("apis-tpczero.goog"))
 	} else {
 		client, err = storage.NewClient(ctx)
 	}
