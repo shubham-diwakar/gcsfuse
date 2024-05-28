@@ -24,6 +24,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path"
 	"path/filepath"
@@ -67,7 +68,10 @@ func registerSIGINTHandler(mountPoint string) {
 			<-signalChan
 			logger.Info("Received SIGINT, attempting to unmount...")
 
-			err := fuse.Unmount(mountPoint)
+			cmd := exec.Command("sudo", "umount", "-l", mountPoint)
+			output, err := cmd.CombinedOutput()
+			log.Print(output)
+
 			if err != nil {
 				logger.Errorf("Failed to unmount in response to SIGINT: %v", err)
 			} else {
@@ -436,6 +440,9 @@ func runCLIApp(c *cli.Context) (err error) {
 			markMountFailure(err)
 			return err
 		}
+		// Let the user unmount with Ctrl-C (SIGINT).
+		registerSIGINTHandler(mfs.Dir())
+
 		if !isDynamicMount(bucketName) {
 			switch flags.MetadataPrefetchOnMount {
 			case config.MetadataPrefetchOnMountSynchronous:
@@ -454,8 +461,6 @@ func runCLIApp(c *cli.Context) (err error) {
 		markSuccessfulMount()
 	}
 
-	// Let the user unmount with Ctrl-C (SIGINT).
-	registerSIGINTHandler(mfs.Dir())
 
 	// Wait for the file system to be unmounted.
 	err = mfs.Join(context.Background())
