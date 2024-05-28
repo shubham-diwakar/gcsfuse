@@ -28,6 +28,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/googlecloudplatform/gcsfuse/v2/cmd"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/canned"
@@ -56,7 +57,13 @@ const (
 // Helpers
 ////////////////////////////////////////////////////////////////////////
 
-func registerSIGINTHandler(mountPoint string) {
+var wasSIGINTReceivedDuringRecursiveListing atomic.Bool
+
+func init() {
+	wasSIGINTReceivedDuringRecursiveListing.Store(false)
+}
+
+func registerSIGINTHandler(mountPoint string, cancelParentContext context.CancelFunc, attemptToUnmount *atomic.Bool) {
 	// Register for SIGINT.
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
@@ -65,14 +72,20 @@ func registerSIGINTHandler(mountPoint string) {
 	go func() {
 		for {
 			<-signalChan
-			logger.Info("Received SIGINT, attempting to unmount...")
 
-			err := fuse.Unmount(mountPoint)
-			if err != nil {
-				logger.Errorf("Failed to unmount in response to SIGINT: %v", err)
+			if attemptToUnmount.Load() {
+				logger.Info("Received SIGINT, attempting to unmount...")
+				err := fuse.Unmount(mountPoint)
+				if err != nil {
+					logger.Errorf("Failed to unmount in response to SIGINT: %v", err)
+				} else {
+					logger.Infof("Successfully unmounted in response to SIGINT.")
+					return
+				}
 			} else {
-				logger.Infof("Successfully unmounted in response to SIGINT.")
-				return
+				cancelParentContext()
+				wasSIGINTReceivedDuringRecursiveListing.Store(true)
+				logger.Info("Received SIGINT, will attempt unmount later (after prefetch has been stopped)")
 			}
 		}
 	}()
@@ -210,27 +223,54 @@ func populateArgs(c *cli.Context) (
 	return
 }
 
-func callListRecursive(mountPoint string) (err error) {
+func callListRecursive(ctx context.Context, mountPoint string) (err error) {
 	logger.Debugf("Started recursive metadata-prefetch of directory: \"%s\" ...", mountPoint)
 	numItems := 0
 	err = filepath.WalkDir(mountPoint, func(path string, d fs.DirEntry, err error) error {
-		if err == nil {
-			numItems++
-			return err
+
+		// if ctx.Err() {
+		// logger.Debugf("callListRecursive: Receive contk
+		// return if context has been cancelled
+		if errInContext := ctx.Err(); errInContext != nil {
+			// return fmt.Errorf("context got eror: %w", err2)
+			logger.Warnf("Got context canceled")
+			// Stop the walk altogether if context got canceled.
+			return filepath.SkipAll
+			// }
+		} else {
+			if d != nil && d.IsDir() {
+				logger.Debugf("Walking directory %v", path)
+			}
+			if numItems > 0 && (numItems%10000 == 0) {
+				logger.Debugf("Completed metadata-prefetch #entries = %v", numItems)
+			}
+			if err == nil {
+				fmt.Printf("Walking path=%s, dentry=%s, isDir=%v\n", path, d.Name(), d.IsDir())
+				numItems++
+				return err
+			}
+			if d == nil {
+				return fmt.Errorf("got error walking: path=\"%s\" does not exist, error = %w", path, err)
+			}
+			return fmt.Errorf("got error walking: path=\"%s\", dentry=\"%s\", isDir=%v, error = %w", path, d.Name(), d.IsDir(), err)
 		}
-		if d == nil {
-			return fmt.Errorf("got error walking: path=\"%s\" does not exist, error = %w", path, err)
-		}
-		return fmt.Errorf("got error walking: path=\"%s\", dentry=\"%s\", isDir=%v, error = %w", path, d.Name(), d.IsDir(), err)
 	})
 
+	if ctx.Err() != nil && err == nil {
+		err = ctx.Err()
+		err = fmt.Errorf("stopped recursive metadata-prefetch of directory: \"%s\" because of %w", mountPoint, err)
+		return err
+	}
+
 	if err != nil {
-		return fmt.Errorf("failed in recursive metadata-prefetch of directory: \"%s\"; error = %w", mountPoint, err)
+		err = fmt.Errorf("failed in recursive metadata-prefetch of directory: \"%s\"; error = %w", mountPoint, err)
+		return err
 	}
 
 	logger.Debugf("... Completed recursive metadata-prefetch of directory: \"%s\". Number of items discovered: %v", mountPoint, numItems)
 
-	return nil
+	err = nil
+	return err
 }
 
 func isDynamicMount(bucketName string) bool {
@@ -405,60 +445,123 @@ func runCLIApp(c *cli.Context) (err error) {
 	// Mount, writing information about our progress to the writer that package
 	// daemonize gives us and telling it about the outcome.
 	var mfs *fuse.MountedFileSystem
-	{
-		mfs, err = mountWithArgs(bucketName, mountPoint, flags, mountConfig)
+	ctx := context.Background()
+	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
+	fmt.Printf("ctxWithCancel on creation: (%T,%p)=%#v\n", ctx, &ctx, ctx)
 
-		// This utility is to absorb the error
-		// returned by daemonize.SignalOutcome calls by simply
-		// logging them as error logs.
-		callDaemonizeSignalOutcome := func(err error) {
-			if err2 := daemonize.SignalOutcome(err); err2 != nil {
-				logger.Errorf("Failed to signal error to parent-process from daemon: %v", err2)
-			}
-		}
+	mfs, err = mountWithArgs(bucketName, mountPoint, flags, mountConfig)
 
-		markSuccessfulMount := func() {
-			// Print the success message in the log-file/stdout depending on what the logger is set to.
-			logger.Info(SuccessfulMountMessage)
-			callDaemonizeSignalOutcome(nil)
+	// This utility is to absorb the error
+	// returned by daemonize.SignalOutcome calls by simply
+	// logging them as error logs.
+	callDaemonizeSignalOutcome := func(err error) {
+		if err2 := daemonize.SignalOutcome(err); err2 != nil {
+			logger.Errorf("Failed to signal error (%v) to parent-process from daemon: %v", err, err2)
 		}
+	}
 
-		markMountFailure := func(err error) {
-			// Printing via mountStatus will have duplicate logs on the console while
-			// mounting gcsfuse in foreground mode. But this is important to avoid
-			// losing error logs when run in the background mode.
-			logger.Errorf("%s: %v\n", UnsuccessfulMountMessagePrefix, err)
-			err = fmt.Errorf("%s: mountWithArgs: %w", UnsuccessfulMountMessagePrefix, err)
-			callDaemonizeSignalOutcome(err)
-		}
+	markSuccessfulMount := func() {
+		// Print the success message in the log-file/stdout depending on what the logger is set to.
+		logger.Info(SuccessfulMountMessage)
+		callDaemonizeSignalOutcome(nil)
+	}
 
-		if err != nil {
-			markMountFailure(err)
-			return err
-		}
-		if !isDynamicMount(bucketName) {
-			switch flags.MetadataPrefetchOnMount {
-			case config.MetadataPrefetchOnMountSynchronous:
-				if err = callListRecursive(mountPoint); err != nil {
+	markMountFailure := func(err error) {
+		// Printing via mountStatus will have duplicate logs on the console while
+		// mounting gcsfuse in foreground mode. But this is important to avoid
+		// losing error logs when run in the background mode.
+		logger.Errorf("%s: %v\n", UnsuccessfulMountMessagePrefix, err)
+		err = fmt.Errorf("%s: mountWithArgs: %w", UnsuccessfulMountMessagePrefix, err)
+		callDaemonizeSignalOutcome(err)
+	}
+
+	if err != nil {
+		markMountFailure(err)
+		return err
+	}
+
+	var attemptToUnmountOnSIGINT atomic.Bool
+	attemptToUnmountOnSIGINT.Store(true)
+
+	// Let the user unmount with Ctrl-C (SIGINT).
+	registerSIGINTHandler(mfs.Dir(), cancelFunc, &attemptToUnmountOnSIGINT)
+
+	if !isDynamicMount(bucketName) {
+		switch flags.MetadataPrefetchOnMount {
+		case config.MetadataPrefetchOnMountSynchronous:
+			err = func() error {
+				defer func() {
+					attemptToUnmountOnSIGINT.Store(true)
+					if wasSIGINTReceivedDuringRecursiveListing.Load() {
+						defer wasSIGINTReceivedDuringRecursiveListing.Store(false)
+						logger.Debugf("Attempting to unmount in response to SIGINT")
+						errOnUnmount := fuse.Unmount(mountPoint)
+						if errOnUnmount != nil {
+							logger.Errorf("Failed to unmount in response to SIGINT: %v", errOnUnmount)
+						} else {
+							logger.Infof("Successfully unmounted in response to SIGINT.")
+							return
+						}
+					}
+				}()
+
+				// Do not attempt to unmount during recursive listing as it will just
+				// fail with resource busy err.
+				attemptToUnmountOnSIGINT.Store(false)
+				if err := callListRecursive(ctxWithCancel, mountPoint); err != nil {
 					markMountFailure(err)
 					return err
 				}
-			case config.MetadataPrefetchOnMountAsynchronous:
-				go func() {
-					if err := callListRecursive(mountPoint); err != nil {
-						logger.Errorf("Metadata-prefetch failed: %v", err)
-					}
-				}()
+				return nil
+			}()
+			if err != nil {
+				return err
 			}
+		case config.MetadataPrefetchOnMountAsynchronous:
+			go func() {
+				// defer func() {
+				// attemptToUnmountOnSIGINT.Store(true)
+				// if wasSIGINTReceivedDuringRecursiveListing.Load() {
+				// 	defer wasSIGINTReceivedDuringRecursiveListing.Store(false)
+				// 	logger.Debugf("Attempting to unmount in response to SIGINT")
+				// 	errOnUnmount := fuse.Unmount(mountPoint)
+				// 	if errOnUnmount != nil {
+				// 		logger.Errorf("Failed to unmount in response to SIGINT: %v", errOnUnmount)
+				// 	} else {
+				// 		logger.Infof("Successfully unmounted in response to SIGINT.")
+				// 		return
+				// 	}
+				// }
+				// }()
+
+				// Do not attempt to unmount during recursive listing as it will just
+				// fail with resource busy err.
+				attemptToUnmountOnSIGINT.Store(false)
+				if err := callListRecursive(ctxWithCancel, mountPoint); err != nil {
+					logger.Errorf("Metadata-prefetch failed: %v", err)
+				}
+
+				attemptToUnmountOnSIGINT.Store(true)
+				// if wasSIGINTReceivedDuringRecursiveListing.Load() {
+				// 	//defer
+				// 	wasSIGINTReceivedDuringRecursiveListing.Store(false)
+				// 	logger.Debugf("Attempting to unmount in response to SIGINT")
+				// 	errOnUnmount := fuse.Unmount(mountPoint)
+				// 	if errOnUnmount != nil {
+				// 		logger.Errorf("Failed to unmount in response to SIGINT: %v", errOnUnmount)
+				// 	} else {
+				// 		logger.Infof("Successfully unmounted in response to SIGINT.")
+				// 		return
+				// 	}
+				// }
+			}()
 		}
-		markSuccessfulMount()
 	}
 
-	// Let the user unmount with Ctrl-C (SIGINT).
-	registerSIGINTHandler(mfs.Dir())
+	markSuccessfulMount()
 
 	// Wait for the file system to be unmounted.
-	err = mfs.Join(context.Background())
+	err = mfs.Join(ctxWithCancel)
 
 	monitor.CloseStackdriverExporter()
 	monitor.CloseOpenTelemetryCollectorExporter()
