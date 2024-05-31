@@ -18,6 +18,9 @@ def write_to_google_sheet(worksheet: str, data) -> None:
   spreadsheet_id = SPREADSHEET_ID
   if os.environ.get("MACHINE_TYPE") == "n2-standard-96" :
     spreadsheet_id = "14-hU4_PWqY6ETSlW-uJPww9psw_usasYbnTTxO7brpc"
+    print("In n2-standard-96 machine")
+  else :
+    os.exit(1)
 
   """Calls the API to update the values of a sheet.
 
