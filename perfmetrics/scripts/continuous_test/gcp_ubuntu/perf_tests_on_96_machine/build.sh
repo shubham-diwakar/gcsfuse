@@ -19,9 +19,6 @@ sudo apt-get update
 echo "Installing git"
 sudo apt-get install git
 
-mkdir github
-cd github
-git clone https://github.com/GoogleCloudPlatform/gcsfuse.git
 cd "github/gcsfuse"
 git checkout create_script_for_running_benchmark
 
