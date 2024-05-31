@@ -19,9 +19,6 @@ sudo apt-get update
 echo "Installing git"
 sudo apt-get install git
 
-cd "github/gcsfuse"
-git checkout create_script_for_running_benchmark
-
 echo "Building and installing gcsfuse"
 # Get the latest commitId of yesterday in the log file. Build gcsfuse and run
 commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
