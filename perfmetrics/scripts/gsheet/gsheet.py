@@ -13,7 +13,11 @@ def _get_sheets_service_client():
   return service
 
 
-def write_to_google_sheet(worksheet: str, data, spreadsheet_id=SPREADSHEET_ID) -> None:
+def write_to_google_sheet(worksheet: str, data) -> None:
+
+  if os.environ.get("MACHINE_TYPE") == "n2-standard-96" :
+    SPREADSHEET_ID = "14-hU4_PWqY6ETSlW-uJPww9psw_usasYbnTTxO7brpc"
+
   """Calls the API to update the values of a sheet.
 
   Args:
@@ -27,19 +31,19 @@ def write_to_google_sheet(worksheet: str, data, spreadsheet_id=SPREADSHEET_ID) -
 
   # Getting the index of the last occupied row in the sheet
   spreadsheet_response = sheets_client.spreadsheets().values().get(
-      spreadsheetId=spreadsheet_id,
+      spreadsheetId=SPREADSHEET_ID,
       range='{}!A1:A'.format(worksheet)).execute()
   entries = len(spreadsheet_response['values'])
 
   # Clearing the occupied rows
   request = sheets_client.spreadsheets().values().clear(
-      spreadsheetId=spreadsheet_id,
+      spreadsheetId=SPREADSHEET_ID,
       range='{}!A2:{}'.format(worksheet,entries+1), 
       body={}).execute()
 
   # Appending new rows
   sheets_client.spreadsheets().values().update(
-      spreadsheetId=spreadsheet_id,
+      spreadsheetId=SPREADSHEET_ID,
       valueInputOption='USER_ENTERED',
       body={
           'majorDimension': 'ROWS',
