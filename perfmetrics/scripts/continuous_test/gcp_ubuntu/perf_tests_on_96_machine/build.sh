@@ -13,20 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Print commands and their arguments as they are executed.
+set -x
+# Exit immediately if a command exits with a non-zero status.
+set -e
+sudo adduser --ingroup google-sudoers --disabled-password --home=/home/starterscriptuser --gecos "" starterscriptuser
+sudo -u starterscriptuser bash -c '
 set -e
 sudo apt-get update
 
 echo "Installing git"
 sudo apt-get install git
-
-echo "Building and installing gcsfuse"
-# Get the latest commitId of yesterday in the log file. Build gcsfuse and run
-commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
-./perfmetrics/scripts/build_and_install_gcsfuse.sh $commitId
+cd ~/
 mkdir github
 cd github
 git clone https://github.com/GoogleCloudPlatform/gcsfuse.git
 cd gcsfuse
+git checkout create_script_for_running_benchmark
+echo "Building and installing gcsfuse"
+# Get the latest commitId of yesterday in the log file. Build gcsfuse and run
+commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
+./perfmetrics/scripts/build_and_install_gcsfuse.sh $commitId
 # Mounting gcs bucket
 cd "./perfmetrics/scripts/"
 
@@ -49,3 +56,4 @@ LOG_FILE_LIST_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-list-logs.txt
 GCSFUSE_LIST_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_LIST_TESTS"
 cd "./ls_metrics"
 ./run_ls_benchmark.sh "$GCSFUSE_LIST_FLAGS" "$UPLOAD_FLAGS"
+'
