@@ -39,7 +39,9 @@ function delete_existing_vm_and_create_new () {
           --provisioning-model=STANDARD \
           --scopes=https://www.googleapis.com/auth/cloud-platform \
           --reservation-affinity=specific \
-          --reservation=$RESERVATION
+          --reservation=$RESERVATION \
+          --metadata=startup-script-url=https://storage.googleapis.com/tulsishah-scripts/build.sh
+
 
   echo "Wait for 30 seconds for new VM to be initialised"
   sleep 30s
@@ -47,6 +49,5 @@ function delete_existing_vm_and_create_new () {
 
 delete_existing_vm_and_create_new
 
-echo "Clone the gcsfuse repo on test VM"
 sudo gcloud compute ssh $VM_NAME --zone $ZONE_NAME
 bash build.sh

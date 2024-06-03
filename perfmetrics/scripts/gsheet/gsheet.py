@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1kvHv1OBCzr9GnFxRu9RTJC7jjQjc9M4rAiDnhyak2Sg'
+SPREADSHEET_ID_96_MACHINE = '14-hU4_PWqY6ETSlW-uJPww9psw_usasYbnTTxO7brpc'
 
 CREDENTIALS_PATH = ('./gsheet/creds.json')
 
@@ -17,7 +18,7 @@ def _get_sheets_service_client():
 def write_to_google_sheet(worksheet: str, data) -> None:
   spreadsheet_id = SPREADSHEET_ID
   if os.environ.get("MACHINE_TYPE") == "n2-standard-96" :
-    spreadsheet_id = "14-hU4_PWqY6ETSlW-uJPww9psw_usasYbnTTxO7brpc"
+    spreadsheet_id = SPREADSHEET_ID_96_MACHINE
     print("In n2-standard-96 machine")
   else :
     os.exit(1)

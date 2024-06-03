@@ -23,20 +23,18 @@ echo "Building and installing gcsfuse"
 # Get the latest commitId of yesterday in the log file. Build gcsfuse and run
 commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
 ./perfmetrics/scripts/build_and_install_gcsfuse.sh $commitId
-
+mkdir github
+cd github
+git clone https://github.com/GoogleCloudPlatform/gcsfuse.git
+cd gcsfuse
 # Mounting gcs bucket
 cd "./perfmetrics/scripts/"
 
 echo Installing Bigquery module requirements...
 pip install --require-hashes -r bigquery/requirements.txt --user
 
-# Upload data to the gsheet only when it runs through kokoro.
-UPLOAD_FLAGS=""
-if [ "${KOKORO_JOB_TYPE}" == "RELEASE" ] || [ "${KOKORO_JOB_TYPE}" == "CONTINUOUS_INTEGRATION" ] || [ "${KOKORO_JOB_TYPE}" == "PRESUBMIT_GITHUB" ] || [ "${KOKORO_JOB_TYPE}" == "SUB_JOB" ];
-then
-  UPLOAD_FLAGS="--upload_gs"
-fi
-
+# Upload data to the gsheet.
+UPLOAD_FLAGS="--upload_gs"
 GCSFUSE_FLAGS="--implicit-dirs  --debug_fuse --debug_gcs --log-format \"text\" "
 LOG_FILE_FIO_TESTS=${KOKORO_ARTIFACTS_DIR}/gcsfuse-logs.txt
 GCSFUSE_FIO_FLAGS="$GCSFUSE_FLAGS --log-file $LOG_FILE_FIO_TESTS --stackdriver-export-interval=30s"
