@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/util"
 )
 
@@ -73,10 +74,15 @@ func (l *LogSeverity) UnmarshalText(text []byte) error {
 type ResolvedPath string
 
 func (p *ResolvedPath) UnmarshalText(text []byte) error {
+	if string(text) == "" {
+		return nil
+	}
+
 	path, err := util.GetResolvedPath(string(text))
 	if err != nil {
 		return err
 	}
+	logger.Infof("Path resolved from [%s] to [%s]", string(text), path)
 	*p = ResolvedPath(path)
 	return nil
 }

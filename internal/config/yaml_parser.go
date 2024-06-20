@@ -136,6 +136,10 @@ func ParseConfigFile(fileName string) (mountConfig *MountConfig, err error) {
 		return
 	}
 
+	fileName, err = util.GetResolvedPath(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("could not resolve config-file path: %v", err)
+	}
 	buf, err := os.ReadFile(fileName)
 	if err != nil {
 		err = fmt.Errorf("error reading config file: %w", err)

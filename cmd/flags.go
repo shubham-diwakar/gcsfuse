@@ -23,10 +23,8 @@ import (
 	"time"
 
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/config"
-	"github.com/googlecloudplatform/gcsfuse/v2/internal/logger"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/mount"
 	mountpkg "github.com/googlecloudplatform/gcsfuse/v2/internal/mount"
-	"github.com/googlecloudplatform/gcsfuse/v2/internal/util"
 	"github.com/urfave/cli"
 )
 
@@ -408,7 +406,7 @@ type flagStorage struct {
 	// GCS
 	CustomEndpoint                     *url.URL
 	BillingProject                     string
-	KeyFile                            string
+	KeyFile                            string `yaml:"key-file"`
 	TokenUrl                           string
 	ReuseTokenFromUrl                  bool
 	EgressBandwidthLimitBytesPerSecond float64
@@ -435,8 +433,8 @@ type flagStorage struct {
 	// Monitoring & Logging
 	StackdriverExportInterval  time.Duration
 	OtelCollectorAddress       string
-	LogFile                    string
-	LogFormat                  string
+	LogFile                    string `yaml:"file-path"`
+	LogFormat                  string `yaml:"format"`
 	ExperimentalEnableJsonRead bool
 	DebugFuseErrors            bool
 
@@ -456,68 +454,6 @@ type flagStorage struct {
 	// This is applicable only to single-bucket mount-points, and not to dynamic-mount points. This is because dynamic-mounts don't mount the bucket(s) at the time of
 	// gcsfuse command itself, which flag is targeted at.
 	ExperimentalMetadataPrefetchOnMount string
-}
-
-func resolveFilePath(filePath string, configKey string) (resolvedPath string, err error) {
-	resolvedPath, err = util.GetResolvedPath(filePath)
-	if filePath == resolvedPath || err != nil {
-		return
-	}
-
-	logger.Infof("Value of [%s] resolved from [%s] to [%s]\n", configKey, filePath, resolvedPath)
-	return resolvedPath, nil
-}
-
-// This method resolves path in the context dictionary.
-func resolvePathForTheFlagInContext(flagKey string, c *cli.Context) (err error) {
-	flagValue := c.String(flagKey)
-	resolvedPath, err := resolveFilePath(flagValue, flagKey)
-	if err != nil {
-		return
-	}
-
-	err = c.Set(flagKey, resolvedPath)
-	return
-}
-
-// For parent process: it only resolves the path with respect to home folder.
-// For child process: it resolves the path relative to both home directory and
-// GCSFUSE_PARENT_PROCESS_DIR. Child process is spawned when --foreground flag
-// is disabled.
-func resolvePathForTheFlagsInContext(c *cli.Context) (err error) {
-	err = resolvePathForTheFlagInContext("log-file", c)
-	if err != nil {
-		return fmt.Errorf("resolving for log-file: %w", err)
-	}
-
-	err = resolvePathForTheFlagInContext("key-file", c)
-	if err != nil {
-		return fmt.Errorf("resolving for key-file: %w", err)
-	}
-
-	err = resolvePathForTheFlagInContext("config-file", c)
-	if err != nil {
-		return fmt.Errorf("resolving for config-file: %w", err)
-	}
-
-	return
-}
-
-// resolveConfigFilePaths resolves the config file paths specified in the config file.
-func resolveConfigFilePaths(mountConfig *config.MountConfig) (err error) {
-	mountConfig.LogConfig.FilePath, err = resolveFilePath(mountConfig.LogConfig.FilePath, "logging: file")
-	if err != nil {
-		return
-	}
-
-	// Resolve cache-dir path
-	resolvedPath, err := resolveFilePath(string(mountConfig.CacheDir), "cache-dir")
-	mountConfig.CacheDir = config.CacheDir(resolvedPath)
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 // Add the flags accepted by run to the supplied flag set, returning the

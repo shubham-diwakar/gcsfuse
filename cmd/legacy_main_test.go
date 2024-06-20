@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/googlecloudplatform/gcsfuse/v2/cfg"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/config"
 	"github.com/googlecloudplatform/gcsfuse/v2/internal/util"
 
@@ -49,12 +50,14 @@ func (t *MainTest) TestCreateStorageHandle() {
 		MaxRetrySleep:       7,
 		RetryMultiplier:     2,
 		AppName:             "app",
-		KeyFile:             "testdata/test_creds.json",
 	}
 	mountConfig := &config.MountConfig{}
+	commonConfig := &cfg.Config{GcsAuth: cfg.GcsAuthConfig{
+		KeyFile: "testdata/test_creds.json",
+	}}
 
 	userAgent := "AppName"
-	storageHandle, err := createStorageHandle(flags, mountConfig, userAgent)
+	storageHandle, err := createStorageHandle(flags, mountConfig, commonConfig, userAgent)
 
 	assert.Equal(t.T(), nil, err)
 	assert.NotEqual(t.T(), nil, storageHandle)
@@ -69,14 +72,16 @@ func (t *MainTest) TestCreateStorageHandle_WithClientProtocolAsGRPC() {
 		MaxRetrySleep:       7,
 		RetryMultiplier:     2,
 		AppName:             "app",
-		KeyFile:             "testdata/test_creds.json",
 	}
 	mountConfig := &config.MountConfig{
 		GCSConnection: config.GCSConnection{GRPCConnPoolSize: 1},
 	}
+	commonConfig := &cfg.Config{GcsAuth: cfg.GcsAuthConfig{
+		KeyFile: "testdata/test_creds.json",
+	}}
 
 	userAgent := "AppName"
-	storageHandle, err := createStorageHandle(flags, mountConfig, userAgent)
+	storageHandle, err := createStorageHandle(flags, mountConfig, commonConfig, userAgent)
 
 	assert.Equal(t.T(), nil, err)
 	assert.NotEqual(t.T(), nil, storageHandle)

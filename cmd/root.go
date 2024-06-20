@@ -38,7 +38,9 @@ of Cloud Storage FUSE, see https://cloud.google.com/storage/docs/gcs-fuse.`,
 	Version: getVersion(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// TODO: the following error will be removed once the command is implemented.
-		return fmt.Errorf("unsupported operation")
+		fmt.Println(configObj)
+		return nil
+		//return fmt.Errorf("unsupported operation")
 	},
 }
 
