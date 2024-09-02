@@ -71,10 +71,6 @@ func main() {
 	// Set up profiling handlers.
 	go perf.HandleCPUProfileSignals()
 	go perf.HandleMemoryProfileSignals()
-	if strings.ToLower(os.Getenv("ENABLE_GCSFUSE_VIPER_CONFIG")) == "false" {
-		cmd.ExecuteLegacyMain()
-		return
-	}
 
 	rootCmd, err := cmd.NewRootCmd(cmd.Mount)
 	if err != nil {
